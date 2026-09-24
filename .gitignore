@@ -1,5 +1,7 @@
 *.json
-.vscode/
+*.vscode/
 node_modules/
 dist/
 .env
+obj/
+bin/
