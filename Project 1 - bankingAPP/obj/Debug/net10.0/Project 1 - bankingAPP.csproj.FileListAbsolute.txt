@@ -167,7 +167,6 @@ C:\Users\kjlov\OneDrive\Documents\RevProjects\Project 1 - bankingAPP\bin\Debug\n
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Project 1 - bankingAPP\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Abstractions.dll
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Project 1 - bankingAPP\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Physical.dll
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Project 1 - bankingAPP\bin\Debug\net10.0\Microsoft.Extensions.FileSystemGlobbing.dll
-C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\bin\Debug\net10.0\appsettings.json
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\bin\Debug\net10.0\Project 1 - bankingAPP.exe
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\bin\Debug\net10.0\Project 1 - bankingAPP.deps.json
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\bin\Debug\net10.0\Project 1 - bankingAPP.runtimeconfig.json
@@ -337,3 +336,4 @@ C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bank
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\obj\Debug\net10.0\Project 1 - bankingAPP.pdb
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\obj\Debug\net10.0\Project 1 - bankingAPP.genruntimeconfig.cache
 C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\obj\Debug\net10.0\ref\Project 1 - bankingAPP.dll
+C:\Users\kjlov\OneDrive\Documents\RevProjects\Revature-Projects\Project 1 - bankingAPP\bin\Debug\net10.0\appsettings.json
