@@ -56,6 +56,7 @@ use BankingAppDB;
 		transactionId int identity(1,1),
 		custAccNo int not null,
 		acctType varchar(20) not null,
+		toAcctType varchar(20) null,
 		transactionType varchar(30) not null,
 		amount decimal (14,2) not null,
 		transactionDate  datetime not null default getdate(),
@@ -63,8 +64,10 @@ use BankingAppDB;
 		constraint pk_transactions primary key(transactionId),
 		constraint fk_transactions_account foreign key(custAccNo, acctType)
 			references account(custAccNo, acctType),
-		constraint chk_transactiontype check (transactionType in ('Withdraw', 'Deposit'))
-	)
+		constraint chk_transactiontype check (transactionType IN ('Withdraw', 'Deposit', 'Transfer', 'Interest')),
+		constraint fk_transactions_toaccount foreign key (custAccNo, toAcctType)
+			references account(custAccNo, acctType)
+)
 
 	create table adminInfo
 	(
@@ -79,4 +82,3 @@ use BankingAppDB;
 	
 	select * from customerInfo
 	select * from account
-

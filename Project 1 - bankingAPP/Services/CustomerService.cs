@@ -81,8 +81,17 @@ public class CustomerService
 
         fromAccount.Withdraw(amount);
         toAccount.Deposit(amount);
-        LogTransaction(custAccNo, fromType, "Withdraw", amount);
-        LogTransaction(custAccNo, toType, "Deposit", amount);
+
+        Transaction transaction = new Transaction
+        {
+            CustAccNo = custAccNo,
+            AcctType = fromType,
+            ToAcctType = toType,
+            TransactionType = "Transfer",
+            Amount = amount,
+            TransactionDate = DateTime.Now
+        };
+        _db.Transactions.Add(transaction);
         _db.SaveChanges();
 
         return (fromAccount.AcctBalance, toAccount.AcctBalance);
@@ -110,6 +119,11 @@ public class CustomerService
             .OrderByDescending(t => t.TransactionDate)
             .Take(5)
             .ToList();
+    }
+
+    public void LogInterestTransaction(int custAccNo, string acctType, decimal amount)
+    {
+        LogTransaction(custAccNo, acctType, "Interest", amount);
     }
 
     #endregion

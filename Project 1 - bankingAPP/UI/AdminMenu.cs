@@ -82,7 +82,10 @@ public class AdminMenu
         }
     }
 
-    // function to make password be hidden to user and appear as '*'
+    // Reads password from console one key at a time instead of waiting for entire line
+    // Every key that is typed is intercepted by (Console.ReadKey) with intercept: true,
+    // reads key without letting the console print it automatically and it replaces the key with something.
+    // If backspace is pressed the last character is removed from the password and the '*' is removed.
     private static string ReadPassword()
     {
         string password = "";
@@ -119,8 +122,13 @@ public class AdminMenu
     {
         while (true)
         {
-            Console.WriteLine("Enter your username: ");
+            Console.WriteLine("Enter your username (or press Enter to go back): ");
             string? username = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return false;
+            }
 
             Console.WriteLine("Enter your password: ");
             string password = ReadPassword();
@@ -133,7 +141,6 @@ public class AdminMenu
                 return true;
             }
 
-            // Restart loop
             Console.WriteLine("Username or password is incorrect. Please try again.");
         }
     }
@@ -260,10 +267,10 @@ public class AdminMenu
         {
             try
             {
-                Console.WriteLine("Enter username of customer you wish to delete: ");
-                string? username = Console.ReadLine();
+                Console.WriteLine("Enter customer's username or account number: ");
+                string? input = Console.ReadLine();
 
-                CustomerInfo? customer = _adminService.FindCustomerByUsername(username!);
+                CustomerInfo? customer = _adminService.FindCustomer(input!);
 
                 if (customer == null)
                 {
@@ -382,10 +389,10 @@ public class AdminMenu
         {
             try
             {
-                Console.WriteLine("Enter username of customer you would like to edit: ");
-                string? username = Console.ReadLine();
+                Console.WriteLine("Enter customer's username or account number: ");
+                string? input = Console.ReadLine();
 
-                CustomerInfo? customer = _adminService.FindCustomerByUsername(username!);
+                CustomerInfo? customer = _adminService.FindCustomer(input!);
                 if (customer == null)
                 {
                     Console.WriteLine("No customer found with that username.");
@@ -582,14 +589,15 @@ public class AdminMenu
         {
             try
             {
-                Console.WriteLine("Enter username of customer whose password you wish to reset: ");
-                string? username = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(username))
+                Console.WriteLine("Enter customer's username or account number: ");
+                string? input = Console.ReadLine();
+
+                CustomerInfo? customer = _adminService.FindCustomer(input!);
+                if (string.IsNullOrWhiteSpace(input))
                 {
                     return;
                 }
 
-                CustomerInfo? customer = _adminService.FindCustomerByUsername(username!);
                 if (customer == null)
                 {
                     Console.WriteLine("No customer found with that username.");

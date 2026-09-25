@@ -39,41 +39,53 @@ public class CustomerMenu
 
             string firstName = _loggedInCustomer!.CustName.Split(' ')[0];
             Console.WriteLine($"Welcome, {firstName}! Please select an option above: ");
+            if (!_loggedInCustomer.CustActive)
+            {
+                Console.WriteLine("Warning: Your account is inactive, only Change Password and Exit are available.");
+            }
             string? choice = Console.ReadLine()?.ToLower();
 
             try
             {
-                switch(choice)
+                if (!_loggedInCustomer!.CustActive && choice != "1" && choice != "7" && choice != "8")
                 {
-                    case "1":
-                        CheckAccountDetails();
-                        break;
-                    case "2":
-                        Withdraw();
-                        break;
-                    case "3":
-                        Deposit();
-                        break;
-                    case "4":
-                        Transfer();
-                        break;
-                    case "5":
-                        LastFiveTransactions();
-                        break;
-                    case "6":
-                        RequestCheckbook();
-                        break;
-                    case "7":
-                        ChangePassword();
-                        break;
-                    case "8":
-                        activeCustomerMenu = false;
-                        Console.WriteLine("Logging out...");
-                        Console.WriteLine($"Thanks for banking with us {firstName}! Have a nice day!");
-                        break;
-                    default:
-                        Console.WriteLine("Invalid selection. Please try again.");
-                        break;
+                    Console.WriteLine("Your account is currently inactive. You can only view your account details and change your password.");
+                    Console.WriteLine("If you believe this is a mistake, please contact customer support.");
+                }
+                else
+                {
+                    switch(choice)
+                    {
+                        case "1":
+                            CheckAccountDetails();
+                            break;
+                        case "2":
+                            Withdraw();
+                            break;
+                        case "3":
+                            Deposit();
+                            break;
+                        case "4":
+                            Transfer();
+                            break;
+                        case "5":
+                            LastFiveTransactions();
+                            break;
+                        case "6":
+                            RequestCheckbook();
+                            break;
+                        case "7":
+                            ChangePassword();
+                            break;
+                        case "8":
+                            activeCustomerMenu = false;
+                            Console.WriteLine("Logging out...");
+                            Console.WriteLine($"Thanks for banking with us {firstName}! Have a nice day!");
+                            break;
+                        default:
+                            Console.WriteLine("Invalid selection. Please try again.");
+                            break;
+                    }
                 }
             }
 
@@ -137,28 +149,38 @@ public class CustomerMenu
     {
         while (true)
         {
-            Console.WriteLine("Enter your username: ");
+            Console.WriteLine("Enter your username (or press Enter to go back): ");
             string? username = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return false;
+            }
 
             Console.WriteLine("Enter your password: ");
             string password = ReadPassword();
 
             CustomerInfo? customer = _customerService.ValidateLogin(username, password);
-            if (customer != null)
+           if (customer != null)
             {
                 _loggedInCustomer = customer;
 
                 foreach (Account account in customer.Accounts)
                 {
+                    decimal balanceBefore = account.AcctBalance;
                     account.InterestApply();
+                    decimal interestEarned = account.AcctBalance - balanceBefore;
+
+                    if (interestEarned != 0)
+                    {
+                        _customerService.LogInterestTransaction(_loggedInCustomer.CustAccNo, account.AcctType, interestEarned);
+                    }
                 }
                 _customerService.SaveInterestChanges();
 
                 Console.WriteLine($"Hello, {customer.CustName}!");
                 return true;
             }
-
-            Console.WriteLine("Username or password is incorrect. Please try again.");
         }
     }
 
@@ -281,8 +303,20 @@ public class CustomerMenu
         Console.WriteLine("\nYour last 5 transactions:");
         foreach (Transaction t in transactions)
         {
-            Console.WriteLine($"{t.TransactionDate} | {t.AcctType} | {t.TransactionType} | {t.Amount:C}");
-            Console.WriteLine("------------------------------------------------------");
+            if (t.TransactionType == "Transfer")
+            {
+                Console.WriteLine($"{t.TransactionDate} | Transfer: {t.AcctType} -> {t.ToAcctType} | {t.Amount:C}");
+            }
+            else if (t.TransactionType == "Interest")
+            {
+                Console.WriteLine($"{t.TransactionDate} | {t.AcctType} | Interest Applied | {t.Amount:C}");
+            }
+            else
+            {
+                Console.WriteLine($"{t.TransactionDate} | {t.AcctType} | {t.TransactionType} | {t.Amount:C}");
+            }
+
+            Console.WriteLine("----------------------------------------");
         }
     }
 

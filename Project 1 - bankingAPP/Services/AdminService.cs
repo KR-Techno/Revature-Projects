@@ -22,6 +22,19 @@ public class AdminService
         return _db.CustomerInfos.FirstOrDefault(c => c.CustuName == username);
     }
 
+    // Attempts to find customer using admin input, which can be either account num or username.
+    // Tries to parse input as int, if succeeds tries to find customer through 'FindCustomerByAccNo'.
+    // If fails, input is treated as username and customer is searched through 'FindCustomerByUserName'.
+    public CustomerInfo? FindCustomer(string input)
+    {
+        if (int.TryParse(input, out int accNo))
+        {
+            return FindCustomerByAccNo(accNo);
+        }
+
+        return FindCustomerByUsername(input);
+    }
+
     #region Validate Entries made by User
     // Establish bank branches that customer can bank at
     private static readonly string[] ValidBranches =
