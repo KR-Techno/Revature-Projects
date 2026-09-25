@@ -7,7 +7,7 @@ use BankingAppDB;
 		custName varchar(50) not null,
 		custAccBranchLoc  varchar(20) not null,
 		custuName varchar(20) not null,
-		custpwd varchar(100) not null,
+		custpwd varchar(60) not null,
 		custActive bit not null default 0,
 
 		constraint pk_custaccno primary key(custAccNo),
@@ -18,6 +18,7 @@ use BankingAppDB;
 			 'Dallas', 'Phoenix', 'Chicago', 'Philadelphia', 'Boston')),
 		constraint unk_custuname unique(custuName)
 	)
+
 
 	CREATE TABLE account
 	(
@@ -64,7 +65,7 @@ use BankingAppDB;
 		constraint pk_transactions primary key(transactionId),
 		constraint fk_transactions_account foreign key(custAccNo, acctType)
 			references account(custAccNo, acctType),
-		constraint chk_transactiontype check (transactionType IN ('Withdraw', 'Deposit', 'Transfer', 'Interest')),
+		constraint chk_transactiontype check (transactionType IN ('Withdraw', 'Deposit', 'Transfer', 'Interest', 'Override')),
 		constraint fk_transactions_toaccount foreign key (custAccNo, toAcctType)
 			references account(custAccNo, acctType)
 )
@@ -82,3 +83,5 @@ use BankingAppDB;
 	
 	select * from customerInfo
 	select * from account
+
+

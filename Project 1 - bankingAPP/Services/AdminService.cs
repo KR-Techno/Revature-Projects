@@ -253,13 +253,26 @@ public class AdminService
             throw new ArgumentException("Customer not found.");
         }
 
-        Account? account = _db.Accounts.FirstOrDefault(a=>a.CustAccNo == custAccNo && a.AcctType == acctType);
+        Account? account = _db.Accounts.FirstOrDefault(a => a.CustAccNo == custAccNo && a.AcctType == acctType);
         if (account == null)
         {
             throw new ArgumentException($"No {acctType} account found for this customer.");
         }
 
+        decimal changeAmount = newBalance - account.AcctBalance;
+
         account.AcctBalance = newBalance;
+
+        Transaction transaction = new Transaction
+        {
+            CustAccNo = custAccNo,
+            AcctType = acctType,
+            TransactionType = "Override",
+            Amount = changeAmount,
+            TransactionDate = DateTime.Now
+        };
+        _db.Transactions.Add(transaction);
+
         _db.SaveChanges();
     }
 

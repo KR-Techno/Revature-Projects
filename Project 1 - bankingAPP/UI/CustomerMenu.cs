@@ -95,7 +95,7 @@ public class CustomerMenu
             }
             catch(Exception ex)
             {
-                Console.WriteLine($"Unexpected error occurred: {ex.Message} Please try again.");
+                Console.WriteLine($"Unexpected error occurred: {ex.Message}.");
             }
         }
     }
@@ -125,9 +125,9 @@ public class CustomerMenu
     }
 
     // Helper function that prompts the customer on which account they want to interact with
-    private string? PromptAccountType()
+    private string? PromptAccountType(string action)
     {
-        Console.WriteLine("Which account?");
+        Console.WriteLine($"Which account would you like to {action}?");
         Console.WriteLine("1. Checking");
         Console.WriteLine("2. Savings");
         Console.WriteLine("3. Loan");
@@ -161,7 +161,7 @@ public class CustomerMenu
             string password = ReadPassword();
 
             CustomerInfo? customer = _customerService.ValidateLogin(username, password);
-           if (customer != null)
+            if (customer != null)
             {
                 _loggedInCustomer = customer;
 
@@ -180,6 +180,10 @@ public class CustomerMenu
 
                 Console.WriteLine($"Hello, {customer.CustName}!");
                 return true;
+            }
+            else
+            {
+                Console.WriteLine("Username or password is incorrect. Please try again.");
             }
         }
     }
@@ -221,7 +225,7 @@ public class CustomerMenu
     private void Withdraw()
     {
         // Prompt customer to choose what account they wish to withdraw money from
-        string? acctType = PromptAccountType();
+        string? acctType = PromptAccountType("withdraw from");
         if (acctType == null)
         {
             return;
@@ -243,7 +247,7 @@ public class CustomerMenu
     private void Deposit()
     {
         // Prompt customer to choose what account they wish to deposit money into
-        string? acctType = PromptAccountType();
+        string? acctType = PromptAccountType("deposit into");
         if (acctType == null)
         {
             return;
@@ -264,13 +268,13 @@ public class CustomerMenu
     // Transfer method
     private void Transfer()
     {
-        string? fromType = PromptAccountType();
+        string? fromType = PromptAccountType("transfer to");
         if (fromType == null)
         {
             return;
         }
 
-        string? toType = PromptAccountType();
+        string? toType = PromptAccountType("transfer from");
         if (toType == null)
         {
             return;
@@ -310,6 +314,10 @@ public class CustomerMenu
             else if (t.TransactionType == "Interest")
             {
                 Console.WriteLine($"{t.TransactionDate} | {t.AcctType} | Interest Applied | {t.Amount:C}");
+            }
+            else if (t.TransactionType == "Override")
+            {
+                Console.WriteLine($"{t.TransactionDate} | {t.AcctType} | Admin Adjustment | {(t.Amount < 0 ? "-" : "+")}{Math.Abs(t.Amount):C}");
             }
             else
             {
