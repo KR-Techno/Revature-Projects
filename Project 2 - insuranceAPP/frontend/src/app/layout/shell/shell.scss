@@ -1,14 +1,39 @@
 /* Styles for the shell layout only (Angular scopes them to this component).
- Covers the sticky toolbar, the nav links, the avatar and the account menu. */
+ Covers the sticky toolbar, the nav links, the avatar and the account menu.
+ Toolbar colors come from --app-toolbar-* in styles.scss, so the admin theme can give admins a dark slate toolbar. */
 
-// toolbar stays pinned to the top while the page scrolls underneath
-.app-toolbar { position: sticky; top: 0; z-index: 10; gap: 8px; }
-.brand { font-weight: 500; font-size: 1.15rem; text-decoration: none; color: inherit; margin-right: 16px; }
+// toolbar stays pinned to the top while the page scrolls underneath; a thin brand-colored strip runs along its bottom
+.app-toolbar {
+  position: sticky; top: 0; z-index: 10; gap: 8px; height: 72px; padding: 0 24px;
+  background: var(--app-toolbar-bg); color: var(--app-toolbar-text);
+  // Material colors toolbar buttons from this token (it beats the nav link color below), so it must match the toolbar text
+  --mat-toolbar-container-text-color: var(--app-toolbar-text);
+  border-bottom: 1px solid var(--app-border);
+  box-shadow: 0 2px 10px rgba(31, 35, 40, 0.04);
+}
+.app-toolbar::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -4px; height: 3px;
+  background: linear-gradient(90deg, var(--app-blue) 0 33%, var(--app-saffron) 33% 66%, var(--app-orange) 66% 100%);
+  opacity: 0.85;
+}
+.brand { text-decoration: none; color: inherit; margin-right: 24px; display: inline-flex; }
+.admin-tag {
+  font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 999px; margin-left: -12px; margin-right: 16px;
+  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3);
+}
 .spacer { flex: 1; }
-// light highlight behind the nav link for the current page
-.active { background: color-mix(in srgb, currentColor 12%, transparent); }
+// nav links: same color as the toolbar text; the current page gets bold text and a colored underline
+nav { display: flex; gap: 4px; }
+nav a { --mat-button-text-label-text-color: var(--app-toolbar-text); --mat-button-text-label-text-weight: 600;
+        position: relative; font-size: 0.98rem; }
+.active { --mat-button-text-label-text-weight: 800 !important; }
+.active::after {
+  content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 3px; border-radius: 3px;
+  background: var(--app-nav-active);
+}
 // page content centered with a max width so lines don't get too long on big screens
-.content { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+.content { max-width: var(--app-content-width); margin: 0 auto; padding: 40px 24px 64px; }
 
 // round avatar with the customer's initials, in the theme's primary color
 .avatar {
@@ -27,4 +52,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+// narrow screens: the nav scrolls sideways instead of squeezing the logo
+@media (max-width: 900px) {
+  .app-toolbar { padding: 0 12px; }
+  .brand { margin-right: 8px; }
+  nav { overflow-x: auto; }
 }

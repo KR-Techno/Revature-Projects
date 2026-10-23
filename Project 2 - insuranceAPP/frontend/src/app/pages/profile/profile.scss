@@ -1,18 +1,24 @@
 /* Styles for the Profile page only (Angular scopes them to this component).
- Covers the details list, the button rows, and the deactivate section; the red button comes from the global styles.scss. */
-mat-card { padding: 8px; }
-mat-card-header { margin-bottom: 16px; }
+ Covers the details list, the button rows, and the deactivate section; the red button comes from the global styles.scss.
+ Same layout as before, just in the site's colors: a blue stripe on the card and a soft orange deactivate box. */
+mat-card { padding: 12px 8px; border-left: 5px solid var(--app-blue); }
+mat-card-header { margin-bottom: 20px; }
+mat-card-title { font-size: 1.3rem; }
 .full { width: 100%; }
-.muted { opacity: 0.7; font-size: 0.85rem; }
+.muted { color: var(--app-muted); font-size: 0.9rem; }
 
 // details list as two columns: the label on the left, the value on the right
-.details { display: grid; grid-template-columns: max-content 1fr; gap: 8px 24px; margin: 0 0 16px; }
-.details dt { opacity: 0.7; }
-.details dd { margin: 0; }
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 14px 32px; margin: 0 0 20px; }
+.details dt { color: var(--app-muted); font-weight: 700; }
+.details dd { margin: 0; font-weight: 600; }
 
-.button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
-.divider { margin: 24px 0 16px; }
+.button-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.button-row button { height: 44px; }
+.divider { margin: 32px 0 24px; }
 
-// deactivate text on the left, red button on the right (stacks on narrow screens)
-.danger-zone { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+// deactivate text on the left, red button on the right (stacks on narrow screens), on a soft orange background
+.danger-zone {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--app-orange-soft); border-radius: 12px; padding: 16px 20px;
+}
 .danger-zone p { margin: 4px 0 0; }

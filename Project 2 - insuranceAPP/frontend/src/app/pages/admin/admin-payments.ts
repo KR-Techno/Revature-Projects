@@ -1,4 +1,4 @@
-/* Admin payments page: every payment record in the system, with overdue ones first.
+/* Admin payments page: every payment record in the system, with filter buttons, a search box and a sort dropdown.
  Shows the customer's contact details so the admin can reach out, and the late fee on top of what is owed.
  Read-only: admins don't take payments for customers. */
 import { Component, computed, inject, signal } from '@angular/core';
@@ -6,22 +6,39 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { AdminService } from '../../services/admin.service';
 import { AdminPayment } from '../../models/admin.models';
 import { apiErrorMessage } from '../../utils/api-error';
+import { SortOption, byNumber, byText, reversed, sortedBy } from '../../utils/sort';
 import { statusClass } from '../../utils/status-class';
 
 // the four filter buttons above the table
 type PaymentFilter = 'overdue' | 'upcoming' | 'paid' | 'all';
 
+// the "Sort by" choices; due dates are "yyyy-mm-dd" text, which sorts correctly as text
+const SORTS: SortOption<AdminPayment>[] = [
+  { label: 'Most days late', compare: reversed(byNumber(p => p.daysOverdue)) },
+  { label: 'Due date (soonest first)', compare: byText(p => p.dueDate) },
+  { label: 'Due date (latest first)', compare: reversed(byText(p => p.dueDate)) },
+  { label: 'Customer name (A to Z)', compare: byText(p => p.customerName) },
+  { label: 'Customer name (Z to A)', compare: reversed(byText(p => p.customerName)) },
+  { label: 'Total (highest first)', compare: reversed(byNumber(p => p.totalAmount)) }
+];
+
 @Component({
   selector: 'app-admin-payments',
-  imports: [CurrencyPipe, DatePipe, MatTableModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule],
+  imports: [CurrencyPipe, DatePipe, MatTableModule, MatButtonToggleModule, MatFormFieldModule, MatInputModule,
+            MatSelectModule, MatIconModule],
   template: `
-    <h1>Payments</h1>
+    <div class="page-header">
+      <h1>Payments</h1>
+      <p class="page-sub">Every payment in the system. Contact details are shown so you can follow up on late ones.</p>
+    </div>
 
     <!-- headline numbers for the overdue payments -->
     <p class="summary">
@@ -34,7 +51,7 @@ type PaymentFilter = 'overdue' | 'upcoming' | 'paid' | 'all';
       }
     </p>
 
-    <!-- filter buttons and a search box work together: both decide which rows show -->
+    <!-- filter buttons, search and sort work together: they decide which rows show and in what order -->
     <div class="controls">
       <mat-button-toggle-group [value]="filter()" (change)="filter.set($event.value)" aria-label="Filter payments">
         <mat-button-toggle value="overdue">Overdue</mat-button-toggle>
@@ -45,15 +62,26 @@ type PaymentFilter = 'overdue' | 'upcoming' | 'paid' | 'all';
 
       <mat-form-field appearance="outline" class="search">
         <mat-label>Search customer</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
         <input matInput [value]="search()" (input)="search.set($any($event.target).value)" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="sort">
+        <mat-label>Sort by</mat-label>
+        <mat-select [value]="sort()" (selectionChange)="sort.set($event.value)">
+          @for (s of sorts; track s.label; let i = $index) {
+            <mat-option [value]="i">{{ s.label }}</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
     </div>
 
     @if (loading()) {
-      <p>Loading payments...</p>
+      <p class="muted">Loading payments...</p>
     } @else if (visible().length === 0) {
-      <p>No payments match.</p>
+      <p class="muted">No payments match.</p>
     } @else {
+      <p class="result-count">Showing {{ visible().length }} of {{ payments().length }} payments</p>
       <div class="table-wrap">
         <table mat-table [dataSource]="visible()">
           <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
@@ -61,7 +89,7 @@ type PaymentFilter = 'overdue' | 'upcoming' | 'paid' | 'all';
           <ng-container matColumnDef="customer">
             <th mat-header-cell *matHeaderCellDef>Customer</th>
             <td mat-cell *matCellDef="let p">
-              <div>{{ p.customerName }}</div>
+              <strong>{{ p.customerName }}</strong>
               <div class="contact">{{ p.customerEmail }} · {{ p.customerPhone }}</div>
             </td>
           </ng-container>
@@ -109,15 +137,11 @@ type PaymentFilter = 'overdue' | 'upcoming' | 'paid' | 'all';
     }
   `,
   styles: `
-    .summary { margin: 4px 0 16px; }
+    /* the overdue headline sits in a white box above the filters */
+    .summary { margin: 0 0 24px; padding: 14px 18px; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 12px; }
     .overdue { color: var(--mat-sys-error); }
-    /* filter buttons and search side by side, wrapping on narrow screens */
-    .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 8px; }
-    .search { width: 100%; max-width: 320px; }
-    /* lets the wide table scroll sideways on small screens */
-    .table-wrap { overflow-x: auto; }
     /* small grey second line under a cell (contact details, policy number, days late) */
-    .contact { font-size: 0.8rem; opacity: 0.7; }
+    .contact { font-size: 0.82rem; color: var(--app-muted); }
   `
 })
 export class AdminPayments {
@@ -129,6 +153,8 @@ export class AdminPayments {
   loading = signal(true);
   filter = signal<PaymentFilter>('overdue');   // starts on the overdue payments, the ones that matter most
   search = signal('');
+  sorts = SORTS;
+  sort = signal(0);               // index into SORTS; starts on the most days late
   statusClass = statusClass;      // colors the status badge
   // which table columns to show, in order (each name matches a matColumnDef above)
   columns = ['customer', 'policy', 'dueDate', 'amount', 'lateFee', 'total', 'status', 'paidDate'];
@@ -138,11 +164,11 @@ export class AdminPayments {
   overdueTotal = computed(() => this.overdue().reduce((sum, p) => sum + p.totalAmount, 0));
   overdueCustomers = computed(() => new Set(this.overdue().map(p => p.customerID)).size);   // a Set counts each customer once
 
-  // the filter buttons plus the search box decide which rows show
+  // the filter buttons plus the search box decide which rows show; the sort dropdown decides the order
   visible = computed(() => {
     const f = this.filter();
     const q = this.search().trim().toLowerCase();
-    return this.payments().filter(p => {
+    const rows = this.payments().filter(p => {
       const matchesFilter =
         f === 'all' ||
         (f === 'overdue' && p.displayStatus === 'Overdue') ||
@@ -152,6 +178,7 @@ export class AdminPayments {
         `${p.customerName} ${p.customerEmail} ${p.customerID} ${p.policyID}`.toLowerCase().includes(q);
       return matchesFilter && matchesSearch;
     });
+    return sortedBy(rows, this.sorts[this.sort()]);
   });
 
   // load every payment once when the page opens (there is nothing on this page that changes them)

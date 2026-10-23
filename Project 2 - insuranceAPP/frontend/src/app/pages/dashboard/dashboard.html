@@ -1,74 +1,76 @@
-<!-- Dashboard page: a welcome message, an overdue warning (if any), three summary cards, and quick links -->
+<!-- Dashboard page: a welcome message, an overdue warning (if any), three summary tiles, and quick links -->
 @if (error()) {
   <p class="error">{{ error() }}</p>
 }
 
-@if (me(); as c) {
-  <h1>Welcome back, {{ c.firstName }}!</h1>
-}
+<div class="page-header">
+  @if (me(); as c) {
+    <h1>Welcome back, {{ c.firstName }}!</h1>
+  } @else {
+    <h1>Welcome back!</h1>
+  }
+  <p class="page-sub">Here's a quick look at your coverage, payments and claims.</p>
+</div>
 
-<!-- red banner summarizing overdue payments, with a link straight to the Payments page -->
+<!-- orange banner summarizing overdue payments, with a link straight to the Payments page -->
 @if (overdue().length > 0) {
   <div class="alert">
-    You have {{ overdue().length }} overdue {{ overdue().length === 1 ? 'payment' : 'payments' }}
-    totaling {{ overdueTotal() | currency }}, including late fees.
+    <span>
+      You have <strong>{{ overdue().length }} overdue {{ overdue().length === 1 ? 'payment' : 'payments' }}</strong>
+      totaling <strong>{{ overdueTotal() | currency }}</strong>, including late fees.
+    </span>
     <a routerLink="/payments">Go to payments</a>
   </div>
 }
 
-<!-- the cards only appear once all four requests have loaded, so they never show half-empty numbers -->
+<!-- the tiles only appear once all four requests have loaded, so they never show half-empty numbers -->
 @if (loaded()) {
-  <div class="cards">
+  <div class="tiles">
     <!-- how many current policies the customer has, and their combined monthly cost -->
-    <mat-card appearance="outlined">
-      <mat-card-header><mat-card-title>Active policies</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <p class="stat">{{ activePolicies().length }}</p>
-        @if (activePolicies().length > 0) {
-          <p>{{ monthlyTotal() | currency }} a month in total</p>
-        } @else {
-          <p>You don't have a policy yet.</p>
-        }
-      </mat-card-content>
-      <mat-card-actions>
+    <div class="tile blue">
+      <span class="tile-label">Active policies</span>
+      <span class="tile-value">{{ activePolicies().length }}</span>
+      @if (activePolicies().length > 0) {
+        <p class="tile-note">{{ monthlyTotal() | currency }}/month in total</p>
+      } @else {
+        <p class="tile-note">You don't have a policy yet.</p>
+      }
+      <div class="tile-actions">
         <a mat-button routerLink="/policies">{{ activePolicies().length > 0 ? 'Manage policies' : 'Get a policy' }}</a>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </div>
 
     <!-- the next unpaid payment, flagged if it's already overdue -->
-    <mat-card appearance="outlined">
-      <mat-card-header><mat-card-title>Next payment</mat-card-title></mat-card-header>
-      <mat-card-content>
-        @if (nextPayment(); as n) {
-          <p class="stat">{{ n.totalAmount | currency }}</p>
-          <p>
-            {{ n.typeName }} #{{ n.policyID }}, due {{ n.dueDate | date:'mediumDate' }}
-            @if (n.displayStatus === 'Overdue') { <span class="status overdue">Overdue</span> }
-          </p>
-        } @else {
-          <p class="stat">None</p>
-          <p>No payments are due.</p>
-        }
-      </mat-card-content>
-      <mat-card-actions>
+    <div class="tile saffron">
+      <span class="tile-label">Next payment</span>
+      @if (nextPayment(); as n) {
+        <span class="tile-value">{{ n.totalAmount | currency }}</span>
+        <p class="tile-note">
+          {{ n.typeName }} #{{ n.policyID }}, due <strong>{{ n.dueDate | date:'mediumDate' }}</strong>
+        </p>
+        @if (n.displayStatus === 'Overdue') { <span><span class="status overdue">Overdue</span></span> }
+      } @else {
+        <span class="tile-value">None</span>
+        <p class="tile-note">No payments are due.</p>
+      }
+      <div class="tile-actions">
         <a mat-button routerLink="/payments">View payments</a>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </div>
 
     <!-- how many claims are still waiting for a decision -->
-    <mat-card appearance="outlined">
-      <mat-card-header><mat-card-title>Open claims</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <p class="stat">{{ openClaims().length }}</p>
-        <p>{{ openClaims().length === 0 ? 'No claims waiting for a decision.' : 'Waiting for a decision.' }}</p>
-      </mat-card-content>
-      <mat-card-actions>
+    <div class="tile orange">
+      <span class="tile-label">Open claims</span>
+      <span class="tile-value">{{ openClaims().length }}</span>
+      <p class="tile-note">{{ openClaims().length === 0 ? 'No claims waiting for a decision.' : 'Waiting for a decision.' }}</p>
+      <div class="tile-actions">
         <a mat-button routerLink="/claims">View claims</a>
-      </mat-card-actions>
-    </mat-card>
+      </div>
+    </div>
   </div>
 
   <!-- quick links to the two most common tasks -->
+  <h2>What would you like to do?</h2>
   <div class="actions">
     <a mat-flat-button routerLink="/policies">Get a quote</a>
     <a mat-stroked-button routerLink="/claims">File a claim</a>

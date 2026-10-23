@@ -1,6 +1,6 @@
 /* Shell layout for the logged-in pages: the toolbar with navigation links and the account avatar stays on screen,
  while the current page loads inside the <router-outlet>. AuthService and CurrentUserService are injected for the account menu. */
-import { Component, computed, inject } from '@angular/core';
+import { Component, DOCUMENT, DestroyRef, computed, effect, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
@@ -9,6 +9,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { AuthService } from '../../services/auth.service';
 import { CurrentUserService } from '../../services/current-user.service';
+import { BrandMark } from '../../shared/brand-mark';
 
 // dark enough that white initials stay readable
 const AVATAR_COLORS = ['#1565c0', '#2e7d32', '#6a1b9a', '#c62828', '#d84315', '#00838f', '#ad1457', '#37474f'];
@@ -16,7 +17,7 @@ const AVATAR_COLORS = ['#1565c0', '#2e7d32', '#6a1b9a', '#c62828', '#d84315', '#
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule,
-            MatMenuModule, MatIconModule, MatDividerModule],
+            MatMenuModule, MatIconModule, MatDividerModule, BrandMark],
   templateUrl: './shell.html',
   styleUrl: './shell.scss'
 })
@@ -39,5 +40,11 @@ export class Shell {
   constructor() {
     // the shell is created on each login, so this loads the right customer's name for the avatar
     this.user.load();
+
+    // admins get the slate admin colors (src/styles/_admin-theme.scss). The class goes on <body> rather than the shell
+    // so pop-ups, which are drawn outside the shell, pick up the admin colors too. Removed on logout (shell destroyed).
+    const body = inject(DOCUMENT).body;
+    effect(() => body.classList.toggle('admin-theme', this.auth.isAdmin()));
+    inject(DestroyRef).onDestroy(() => body.classList.remove('admin-theme'));
   }
 }

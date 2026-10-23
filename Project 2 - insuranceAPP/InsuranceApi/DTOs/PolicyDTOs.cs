@@ -82,6 +82,7 @@ public class PolicyDto
     public decimal RemainingBalance { get; set; }           // payments still to make (late fees are shown on the Payments page)
     public decimal PolicyTotal { get; set; }                // paid so far + remaining
     public DateOnly? NextDueDate { get; set; }              // the next unpaid payment's due date (null when nothing is left)
+    public bool HasOverduePayment { get; set; }             // true when the customer owes an overdue payment (blocks changing coverage and cancelling)
 }
 
 public class PolicyCreatedDto

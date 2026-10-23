@@ -1,9 +1,12 @@
 <!-- Claims page: a table of the customer's claims on top, and the file-a-claim form underneath -->
-<h1>Your claims</h1>
+<div class="page-header">
+  <h1>Your claims</h1>
+  <p class="page-sub">Track the claims you've filed, or file a new one below.</p>
+</div>
 
 <!-- show a friendly message instead of an empty table when there are no claims -->
 @if (claims().length === 0) {
-  <p>You haven't filed any claims.</p>
+  <p class="muted">You haven't filed any claims.</p>
 } @else {
   <div class="table-wrap">
     <table mat-table [dataSource]="claims()">
@@ -14,7 +17,7 @@
       </ng-container>
       <ng-container matColumnDef="policy">
         <th mat-header-cell *matHeaderCellDef>Policy</th>
-        <td mat-cell *matCellDef="let c">{{ c.typeName }} #{{ c.policyID }}</td>
+        <td mat-cell *matCellDef="let c"><strong>{{ c.typeName }}</strong> #{{ c.policyID }}</td>
       </ng-container>
       <ng-container matColumnDef="incidentDate">
         <th mat-header-cell *matHeaderCellDef>Incident</th>
@@ -60,7 +63,7 @@
 
 <!-- the form only appears if the customer has at least one active policy to claim on -->
 @if (activePolicies().length === 0) {
-  <p>You need an active policy to file a claim.</p>
+  <p class="muted">You need an active policy to file a claim.</p>
 } @else {
   <mat-card>
     <mat-card-content>
@@ -149,7 +152,7 @@
           <p class="error">{{ error() }}</p>
         }
 
-        <button mat-flat-button type="submit" [disabled]="loading()">Submit claim</button>
+        <button mat-flat-button type="submit" class="submit" [disabled]="loading()">Submit claim</button>
       </form>
     </mat-card-content>
   </mat-card>

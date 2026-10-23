@@ -1,7 +1,11 @@
 <!-- Shell layout shared by every logged-in page: the toolbar stays at the top, the current page loads below it -->
 <mat-toolbar class="app-toolbar">
   <!-- for an admin, /dashboard is redirected to /admin/customers by customerGuard, so the logo works for both -->
-  <a class="brand" routerLink="/dashboard">DucklingInsurance</a>
+  <a class="brand" routerLink="/dashboard" aria-label="DucklingInsurance home"><app-brand-mark /></a>
+  <!-- small tag so an admin always knows they're on the admin side (the darker toolbar is the other clue) -->
+  @if (auth.isAdmin()) {
+    <span class="admin-tag">Admin</span>
+  }
   <!-- navigation links; routerLinkActive adds the "active" class to the link for the page you're on -->
   <!-- an admin sees the admin links; a customer sees the customer links -->
   <nav>

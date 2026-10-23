@@ -1,0 +1,33 @@
+/* Admin color theme (loaded once through styles.scss).
+ The shell adds the "admin-theme" class to <body> when an admin logs in, so every admin page AND every admin pop-up
+ (pop-ups are drawn outside the page, directly under <body>) switch to these calmer slate colors.
+ This keeps the admin side clearly different from the customer side, so the two are never confused. */
+@use '@angular/material' as mat;
+
+body.admin-theme {
+  // slate blue for buttons and links, muted sage for "good" badges, cool grey page background
+  --app-blue: #3E5873;
+  --app-blue-deep: #2E4258;
+  --app-saffron: #B9A36A;
+  --app-orange: #B65A3A;
+  --app-bg: #F2F4F7;
+  --app-border: #DDE2E8;
+  --app-blue-soft: #E3EAF1;
+  --app-saffron-soft: #F2EEDF;
+  --app-orange-soft: #F5E6E0;
+  // dark slate toolbar with white text, and a wider content area for the admin tables
+  --app-toolbar-bg: #2B3644;
+  --app-toolbar-text: #FFFFFF;
+  --app-nav-active: #9FB3C8;
+  --app-content-width: 1200px;
+
+  @include mat.theme-overrides(
+    (
+      primary: #3E5873,
+      primary-container: #DDE4EC,
+      secondary-container: #E3E8EE,
+      tertiary: #5E7D6E,
+      outline-variant: #DDE2E8,
+    )
+  );
+}

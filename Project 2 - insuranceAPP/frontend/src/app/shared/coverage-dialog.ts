@@ -29,7 +29,7 @@ export interface CoverageData { policy: Policy; type: PolicyType; }
   template: `
     <h2 mat-dialog-title>Change your {{ data.policy.typeName }} coverage</h2>
     <mat-dialog-content>
-      <p>Current: <strong>{{ data.policy.levelName }}</strong>, {{ data.policy.coverageAmount | currency }} coverage at {{ data.policy.monthlyPremium | currency }} a month.</p>
+      <p>Current: <strong>{{ data.policy.levelName }}</strong>, {{ data.policy.coverageAmount | currency }} coverage at {{ data.policy.monthlyPremium | currency }}/month.</p>
 
       <!-- every level of this product with its description; the current one starts selected -->
       <mat-radio-group [formControl]="level" class="levels">
@@ -62,7 +62,7 @@ export interface CoverageData { policy: Policy; type: PolicyType; }
 
       <!-- the new price, shown only after "See new price" and cleared if the level or amount changes -->
       @if (quote(); as q) {
-        <p class="price">{{ q.monthlyPremium | currency }} <span>a month (now {{ data.policy.monthlyPremium | currency }})</span></p>
+        <p class="price">{{ q.monthlyPremium | currency }}<span>/month (now {{ data.policy.monthlyPremium | currency }}/month)</span></p>
         <p class="note">Payments not yet due will use the new amount. Payments already made or overdue don't change.</p>
       }
       @if (error()) {

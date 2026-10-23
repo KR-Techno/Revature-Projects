@@ -1,0 +1,45 @@
+/* Styles for the Login / welcome page only (Angular scopes them to this component).
+ Two columns on wide screens (welcome text left, login box right), one column on phones. */
+
+// soft, low-opacity glows of the brand colors in the corners so the page feels warm without being bright
+.welcome-page {
+  min-height: 100vh; box-sizing: border-box; padding: 48px 24px;
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 440px);
+  gap: 64px; align-items: center; justify-content: center; max-width: 1100px; margin: 0 auto;
+}
+:host { display: block; min-height: 100vh;
+  background:
+    radial-gradient(600px 400px at 0% 0%, rgba(238, 185, 2, 0.14), transparent 70%),
+    radial-gradient(600px 400px at 100% 100%, rgba(45, 125, 210, 0.12), transparent 70%),
+    radial-gradient(500px 300px at 100% 0%, rgba(229, 88, 18, 0.08), transparent 70%),
+    var(--app-bg);
+}
+
+.slogan { font-size: 1.6rem; font-weight: 800; margin: 28px 0 12px; line-height: 1.3; }
+.intro { font-size: 1.1rem; color: var(--app-muted); margin: 0 0 28px; max-width: 480px; }
+
+// the three perks: icon in a soft colored circle, dark text beside it
+.perks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+.perks li { display: flex; align-items: center; gap: 14px; font-weight: 600; }
+.perk-icon { width: 42px; height: 42px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+             flex-shrink: 0; color: var(--app-ink); }
+.perk-icon.blue { background: var(--app-blue-soft); }
+.perk-icon.saffron { background: var(--app-saffron-soft); }
+.perk-icon.orange { background: var(--app-orange-soft); }
+
+// the login box
+.login-card { width: 100%; padding: 16px 12px; border-radius: 20px; box-shadow: 0 12px 32px rgba(31, 35, 40, 0.08) !important; }
+.login-card mat-card-header { margin-bottom: 20px; }
+.login-card mat-card-title { font-size: 1.5rem; font-weight: 800; }
+.full { width: 100%; }
+.submit { height: 48px; font-size: 1rem; }
+.auth-error { color: var(--mat-sys-error); margin: 0 0 12px; }
+.auth-footer { margin-top: 20px; text-align: center; }
+
+// phones and small tablets: welcome text on top, login box underneath
+@media (max-width: 860px) {
+  .welcome-page { grid-template-columns: 1fr; gap: 36px; padding: 32px 16px; }
+  .welcome { text-align: center; }
+  .intro { margin-left: auto; margin-right: auto; }
+  .perks { align-items: center; }
+}

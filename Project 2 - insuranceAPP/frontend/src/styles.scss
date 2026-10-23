@@ -4,6 +4,33 @@
 // Learn more about theming and how to use it for your application's
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
+// shared look for page headers, tables, cards, badges and alerts (src/styles/_components.scss)
+@use 'styles/components';
+// the admin's calmer slate colors, switched on by the shell (src/styles/_admin-theme.scss)
+@use 'styles/admin-theme';
+
+// DucklingInsurance colors. The three brand colors are used as accents only (buttons, borders, highlights);
+// text always stays dark ink so the pages stay calm and easy to read.
+:root {
+  --app-blue: #2D7DD2;          // main color: buttons, links, focus
+  --app-blue-deep: #1F5E9F;     // darker blue for hover states
+  --app-saffron: #EEB902;       // highlight: active nav link, "pending" badges
+  --app-orange: #E55812;        // warm accent from the logo: alerts, "overdue" badges
+  --app-ink: #1F2328;           // all body text
+  --app-muted: #5C6470;         // secondary text (labels, hints)
+  --app-bg: #FAF7F0;            // warm cream page background, softer than pure white
+  --app-surface: #FFFFFF;       // cards, tables and dialogs
+  --app-border: #E8E1D3;        // thin borders around cards and tables
+  // soft tints of the brand colors for backgrounds (never used for text)
+  --app-blue-soft: #E7F0FA;
+  --app-saffron-soft: #FDF4D3;
+  --app-orange-soft: #FCEADF;
+  // toolbar colors (the admin theme swaps these)
+  --app-toolbar-bg: #FFFFFF;
+  --app-toolbar-text: var(--app-ink);
+  --app-nav-active: var(--app-saffron);
+  --app-content-width: 1040px;
+}
 
 html {
   height: 100%;
@@ -11,10 +38,36 @@ html {
     (
       color: (
         primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        tertiary: mat.$orange-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: (Nunito, sans-serif),
+        brand-family: (Nunito, sans-serif),
+        bold-weight: 700,
+        medium-weight: 600,
+        regular-weight: 400,
+      ),
       density: 0,
+    )
+  );
+  // pins Material's generated colors to the exact brand colors
+  @include mat.theme-overrides(
+    (
+      primary: #2D7DD2,
+      on-primary: #FFFFFF,
+      primary-container: #DCE9F8,
+      on-primary-container: #1F2328,
+      secondary-container: #FDF1CC,
+      on-secondary-container: #1F2328,
+      tertiary: #E55812,
+      on-surface: #1F2328,
+      on-surface-variant: #4B5360,
+      outline-variant: #E8E1D3,
+      surface: #FFFFFF,
+      surface-container-lowest: #FFFFFF,
+      surface-container-low: #FFFFFF,
+      surface-container: #FFFFFF,
+      surface-container-high: #FFFFFF,
     )
   );
 }
@@ -25,46 +78,80 @@ body {
   // user's system settings.
   color-scheme: light;
 
-  // Set a default background, font and text colors for the application using
-  // Angular Material's system-level CSS variables. Learn more about these
-  // variables at https://material.angular.dev/guide/system-variables
-  background-color: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-  font: var(--mat-sys-body-medium);
+  // warm cream background with dark ink text; the font comes from the theme above (Nunito)
+  background-color: var(--app-bg);
+  color: var(--app-ink);
+  font: var(--mat-sys-body-large);
+  line-height: 1.55;
 
   // Reset the user agent margin.
   margin: 0;
   height: 100%;
 }
 
+// headings: bold and dark, with room above and below so sections don't run together
+h1, h2, h3 { color: var(--app-ink); font-family: Nunito, sans-serif; }
+h1 { font-size: 1.9rem; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.01em; }
+h2 { font-size: 1.35rem; font-weight: 700; margin: 48px 0 16px; }
+h3 { font-size: 1.1rem; font-weight: 700; margin: 0 0 8px; }
+a { color: var(--app-blue-deep); font-weight: 600; }
+strong { font-weight: 700; }
+
+// Material component tokens: bold button labels, bold table headers, white cards/dialogs with soft rounded corners
+// (set on body, not html, so the admin theme's colors on body.admin-theme flow into them)
+body {
+  --mat-button-text-label-text-weight: 700;
+  --mat-button-filled-label-text-weight: 700;
+  --mat-button-outlined-label-text-weight: 700;
+  --mat-button-protected-label-text-weight: 700;
+  --mat-button-tonal-label-text-weight: 700;
+  --mat-button-text-label-text-color: var(--app-blue-deep);
+  --mat-button-outlined-label-text-color: var(--app-blue-deep);
+  --mat-button-toggle-label-text-weight: 600;
+  --mat-table-header-headline-weight: 700;
+  --mat-table-header-headline-color: var(--app-muted);
+  --mat-table-row-item-container-height: 60px;
+  --mat-table-header-container-height: 52px;
+  --mat-table-row-item-outline-color: var(--app-border);
+  --mat-card-title-text-weight: 700;
+  --mat-card-outlined-outline-color: var(--app-border);
+  --mat-card-outlined-container-shape: 16px;
+  --mat-card-elevated-container-shape: 16px;
+  --mat-dialog-container-shape: 20px;
+  --mat-dialog-subhead-weight: 800;
+  --mat-dialog-supporting-text-color: var(--app-ink);   // pop-up text in dark ink instead of grey, for readability
+}
+
 // space between every form field in the app
-mat-form-field { margin-bottom: 8px; }
+mat-form-field { margin-bottom: 12px; }
 // global styling for auth
-.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
-.auth-wrap { width: 100%; max-width: 460px; }
-.auth-brand { text-align: center; margin: 0 0 16px; font-size: 1.75rem; }
-.auth-page mat-card { width: 100%; padding: 8px; }
-.auth-page mat-card-header { margin-bottom: 16px; }
+.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 40px 16px; box-sizing: border-box;
+  // same soft brand-color glows as the welcome screen
+  background:
+    radial-gradient(600px 400px at 0% 0%, rgba(238, 185, 2, 0.14), transparent 70%),
+    radial-gradient(600px 400px at 100% 100%, rgba(45, 125, 210, 0.12), transparent 70%),
+    var(--app-bg);
+}
+.auth-wrap { width: 100%; max-width: 520px; }
+// logo and name centered above the card, with a short line underneath
+.auth-brand { display: flex; flex-direction: column; align-items: center; margin: 0 0 28px; text-align: center; }
+.auth-tagline { margin: 14px 0 0; font-size: 1.1rem; font-weight: 600; color: var(--app-muted); }
+.auth-page mat-card { width: 100%; padding: 16px 12px; border-radius: 20px; border: 1px solid var(--app-border);
+                      box-shadow: 0 10px 30px rgba(31, 35, 40, 0.08); }
+.auth-page mat-card-header { margin-bottom: 20px; }
+.auth-page mat-card-title { font-size: 1.4rem; font-weight: 800; }
 .auth-page .full { width: 100%; }
+.auth-page button.full { height: 48px; font-size: 1rem; }
 .auth-error { color: var(--mat-sys-error); margin: 0 0 12px; }
-.auth-footer { margin-top: 16px; text-align: center; }
+.auth-footer { margin-top: 20px; text-align: center; }
 // global styling for name
 .name-row, .dob-row { display: flex; gap: 12px; }
 .name-row mat-form-field { flex: 1; }
 // global styling for DOB
-.dob-label { margin: 0 0 4px 2px; font-size: 0.875rem; opacity: 0.75; }
+.dob-label { margin: 0 0 6px 2px; font-size: 0.9rem; font-weight: 600; color: var(--app-muted); }
 .dob-month { flex: 2; }
 .dob-day { flex: 1; }
 .dob-year { flex: 1.3; }
-// global styling for status: rounded badges in the payment/claim tables, colored by the class statusClass() adds
-// (red for overdue/denied, primary color for paid/approved, grey for everything else)
-.status { padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; white-space: nowrap;
-          background: var(--mat-sys-surface-container-high); }
-.status.overdue, .status.denied { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
-.status.paid, .status.approved { background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container); }
-// red warning banner, e.g. the overdue payments alert
-.alert { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container);
-         padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
 // red filled button for destructive actions (e.g. deactivating the account); global so dialogs can use it too
 .danger-button {
   --mat-button-filled-container-color: var(--mat-sys-error);

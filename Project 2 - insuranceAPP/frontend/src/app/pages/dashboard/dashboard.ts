@@ -6,7 +6,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
 import { CustomerService } from '../../services/customer.service';
 import { PolicyService } from '../../services/policy.service';
 import { PaymentService } from '../../services/payment.service';
@@ -19,7 +18,7 @@ import { apiErrorMessage } from '../../utils/api-error';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, CurrencyPipe, DatePipe, MatCardModule, MatButtonModule],
+  imports: [RouterLink, CurrencyPipe, DatePipe, MatButtonModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -29,7 +28,7 @@ export class Dashboard {
   policies = signal<Policy[]>([]);
   payments = signal<Payment[]>([]);
   claims = signal<Claim[]>([]);
-  loaded = signal(false);         // the cards stay hidden until all four requests are back
+  loaded = signal(false);         // the tiles stay hidden until all four requests are back
   error = signal('');
 
   // current policies (Active or Pending) and what they cost together each month

@@ -1,31 +1,96 @@
-<!-- Payments page: an overdue warning (if any) and a table of the customer's payments with a Pay button -->
-<h1>Payments</h1>
+<!-- Payments page: when the next payment is due, what is left on monthly plans, an overdue warning (if any),
+     and a table of the customer's payments with a Pay button -->
+<div class="page-header">
+  <h1>Payments</h1>
+  <p class="page-sub">See what's coming up, what's left on your plans, and your payment history.</p>
+</div>
 
-<!-- red banner summarizing overdue payments; only shown when there is at least one -->
+<!-- orange banner summarizing overdue payments; only shown when there is at least one -->
 @if (overdue().length > 0) {
   <div class="alert">
-    You have {{ overdue().length }} overdue {{ overdue().length === 1 ? 'payment' : 'payments' }}
-    totaling {{ overdueTotal() | currency }}, including late fees.
+    <!-- wrapped in one span: the banner is a flex row, so loose words would be spaced apart like separate items -->
+    <span>
+      You have <strong>{{ overdue().length }} overdue {{ overdue().length === 1 ? 'payment' : 'payments' }}</strong>
+      totaling <strong>{{ overdueTotal() | currency }}</strong>, including late fees.
+    </span>
   </div>
 }
 
+<!-- the two summary tiles: the next payment due, and the balance left on monthly plans -->
+<div class="tiles">
+  <div class="tile saffron">
+    <span class="tile-label">Next payment due</span>
+    @if (nextPayment(); as n) {
+      <span class="tile-value">{{ n.dueDate | date:'MMM d, y' }}</span>
+      <p class="tile-note">
+        <strong class="ink">{{ n.totalAmount | currency }}</strong> for {{ n.typeName }} #{{ n.policyID }}
+        @if (n.lateFee > 0) { (includes a {{ n.lateFee | currency }} late fee) }
+      </p>
+      <!-- countdown badge: saffron while it's still upcoming, orange once it's overdue -->
+      <span><span [class]="n.displayStatus === 'Overdue' ? 'status overdue' : 'status pending'">{{ dueCountdown() }}</span></span>
+      @if (canPay(n)) {
+        <div class="tile-actions">
+          <button mat-flat-button [disabled]="loading()" (click)="pay(n)">Pay {{ n.totalAmount | currency }} now</button>
+        </div>
+      }
+    } @else {
+      <span class="tile-value">All caught up</span>
+      <p class="tile-note">You have no payments due.</p>
+    }
+  </div>
+
+  <div class="tile blue">
+    <span class="tile-label">Left to pay on monthly plans</span>
+    <span class="tile-value">{{ monthlyRemaining() | currency }}</span>
+    <!-- only mentioned when there are late fees, so the customer can see why the total is higher -->
+    @if (monthlyLateFees() > 0) {
+      <p class="tile-note">Includes <strong class="ink">{{ monthlyLateFees() | currency }}</strong> in late fees</p>
+    }
+    @if (monthlyPlans().length === 0) {
+      <p class="tile-note">You have no policies on a monthly plan.</p>
+    } @else {
+      <!-- one line per monthly policy: what's left, how many payments remain, and a bar showing how much is paid -->
+      <ul class="plans">
+        @for (m of monthlyPlans(); track m.policy.policyID) {
+          <li>
+            <div class="plan-line">
+              <span><strong>{{ m.policy.typeName }}</strong> #{{ m.policy.policyID }}</span>
+              <span><strong>{{ m.leftToPay | currency }}</strong> left</span>
+            </div>
+            <div class="progress" [attr.aria-label]="m.percentPaid + '% paid'"><span [style.width.%]="m.percentPaid"></span></div>
+            <div class="cell-sub">
+              {{ m.policy.paidSoFar | currency }} of {{ m.policy.policyTotal | currency }} paid ·
+              {{ m.paymentsLeft }} {{ m.paymentsLeft === 1 ? 'payment' : 'payments' }} of {{ m.policy.monthlyPremium | currency }} left
+              @if (m.lateFees > 0) { · plus {{ m.lateFees | currency }} in late fees }
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>
+
+<h2>Payment history</h2>
+
 <!-- cancelled payments are hidden by default; this toggle (only shown if there are any) reveals them -->
 @if (cancelledCount() > 0) {
-  <mat-slide-toggle [checked]="showCancelled()" (change)="showCancelled.set($event.checked)">
-    Show cancelled payments ({{ cancelledCount() }})
-  </mat-slide-toggle>
+  <div class="toggle-row">
+    <mat-slide-toggle [checked]="showCancelled()" (change)="showCancelled.set($event.checked)">
+      Show cancelled payments ({{ cancelledCount() }})
+    </mat-slide-toggle>
+  </div>
 }
 
 <!-- friendly message instead of an empty table when there is nothing to show -->
 @if (visiblePayments().length === 0) {
-  <p>No payments to show. They appear here when you buy a policy.</p>
+  <p class="muted">No payments to show. They appear here when you buy a policy.</p>
 } @else {
   <div class="table-wrap">
     <table mat-table [dataSource]="visiblePayments()">
       <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
       <ng-container matColumnDef="policy">
         <th mat-header-cell *matHeaderCellDef>Policy</th>
-        <td mat-cell *matCellDef="let p">{{ p.typeName }} #{{ p.policyID }}</td>
+        <td mat-cell *matCellDef="let p"><strong>{{ p.typeName }}</strong> #{{ p.policyID }}</td>
       </ng-container>
       <ng-container matColumnDef="dueDate">
         <th mat-header-cell *matHeaderCellDef>Due</th>
@@ -37,7 +102,7 @@
       </ng-container>
       <ng-container matColumnDef="lateFee">
         <th mat-header-cell *matHeaderCellDef>Late fee</th>
-        <td mat-cell *matCellDef="let p">{{ p.lateFee | currency }}</td>
+        <td mat-cell *matCellDef="let p">{{ p.lateFee > 0 ? (p.lateFee | currency) : '-' }}</td>
       </ng-container>
       <ng-container matColumnDef="total">
         <th mat-header-cell *matHeaderCellDef>Total</th>
@@ -54,7 +119,12 @@
       </ng-container>
       <ng-container matColumnDef="paidDate">
         <th mat-header-cell *matHeaderCellDef>Paid on</th>
-        <td mat-cell *matCellDef="let p">{{ p.paidDate ? (p.paidDate | date:'mediumDate') : '' }}</td>
+        <td mat-cell *matCellDef="let p">{{ p.paidDate ? (p.paidDate | date:'mediumDate') : '-' }}</td>
+      </ng-container>
+      <!-- the receipt number: only completed payments have one, so unpaid rows show a dash -->
+      <ng-container matColumnDef="confirmation">
+        <th mat-header-cell *matHeaderCellDef>Confirmation #</th>
+        <td mat-cell *matCellDef="let p">{{ p.paymentStatus === 'Paid' ? p.paymentID : '-' }}</td>
       </ng-container>
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>

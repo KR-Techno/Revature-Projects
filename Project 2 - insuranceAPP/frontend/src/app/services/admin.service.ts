@@ -3,7 +3,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
-import { AdminClaim, AdminCustomer, AdminPayment, AdminQuote, CreateProductRequest, DecideClaimRequest, UpdateCustomerRequest } from '../models/admin.models';
+import { AdminClaim, AdminCustomer, AdminPayment, AdminProductCustomer, AdminProductSummary, AdminQuote, CreateProductRequest, DecideClaimRequest, UpdateCustomerRequest } from '../models/admin.models';
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -40,6 +40,13 @@ export class AdminService {
 
   // GET /api/admin/quotes: every quote customers have requested (read-only)
   getQuotes() { return this.http.get<AdminQuote[]>(`${this.base}/quotes`); }
+
+  // GET /api/admin/policytypes: every product with its level names and how many customers hold it
+  getProducts() { return this.http.get<AdminProductSummary[]>(`${this.base}/policytypes`); }
+  // GET /api/admin/policytypes/{policyTypeId}/customers: the customers holding one product, with their policy details
+  getProductCustomers(policyTypeId: number) {
+    return this.http.get<AdminProductCustomer[]>(`${this.base}/policytypes/${policyTypeId}/customers`);
+  }
   // GET /api/admin/payments: every payment record, overdue first (read-only)
   getPayments() { return this.http.get<AdminPayment[]>(`${this.base}/payments`); }
 

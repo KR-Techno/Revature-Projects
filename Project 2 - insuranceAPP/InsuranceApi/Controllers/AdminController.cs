@@ -145,6 +145,17 @@ public class AdminController : ControllerBase
 
     // Policy products
 
+    [HttpGet("policytypes")]
+    // GET /api/admin/policytypes: every product with how many customers hold it (no password needed to view)
+    public async Task<ActionResult<List<AdminProductSummaryDto>>> GetProducts() =>
+        Ok(await _admin.GetProductSummaryAsync());
+
+    [HttpGet("policytypes/{policyTypeId:int}/customers")]
+    // GET /api/admin/policytypes/{id}/customers: the customers (and their policy details) under one product
+    // read-only: lets the admin see who holds a product and how to reach them
+    public async Task<ActionResult<List<AdminProductCustomerDto>>> GetProductCustomers(int policyTypeId) =>
+        Ok(await _admin.GetProductCustomersAsync(policyTypeId));
+
     [HttpPost("policytypes")]
     [EnableRateLimiting("auth")]
     // POST /api/admin/policytypes: creates a new product with its coverage levels (admin password required)

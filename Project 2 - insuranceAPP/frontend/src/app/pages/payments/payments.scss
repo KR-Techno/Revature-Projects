@@ -1,6 +1,10 @@
 /* Styles for the Payments page only (Angular scopes them to this component).
- Status badges and the overdue alert come from the global styles.scss. */
+ Tiles, tables, status badges and the overdue alert come from the global styles (src/styles/_components.scss). */
 
-// lets the table scroll sideways on small screens instead of overflowing the page
-.table-wrap { overflow-x: auto; }
-table { width: 100%; }
+// the per-policy list inside the "Left to pay" tile
+.plans { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.plans li { display: flex; flex-direction: column; gap: 6px; }
+.plan-line { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+// keeps the amount dark inside the grey tile note
+.ink { color: var(--app-ink); }
+.tile-actions button { height: 44px; }

@@ -19,7 +19,8 @@ create table Customer
 	constraint ck_customerEmail_format check (customerEmail like '%_@_%._%' and customerEmail not like '% %'),
 
     constraint ck_customerID check (customerID between 100000000 and 999999999),
-    constraint ck_customerDOB check (customerDOB <= cast(getdate() as date)),
+    constraint ck_customerDOB check (customerDOB <= dbo.businessToday()),
+	constraint ck_customerDOB_minimumAge check (customerDOB <= dateadd(year, -18, dbo.businessToday())),
     constraint ck_customer_firstName check (len(firstName) > 0),
     constraint ck_firstName_chars check               -- error when a name contains numbers or symbols
     (
@@ -42,7 +43,6 @@ create table Customer
     check (passwordHash like '$2[abxy]$%' and len(passwordHash) = 60)
 );
 
- 
 
 -- Function: turns all-lowercase or all-uppercase names into proper case
 -- (bob ross = Bob Ross, JERMAINE COLE = Jermaine Cole). mixed case is left alone.
@@ -101,6 +101,8 @@ begin
  
         if exists (select 1 from Customer where customerEmail = @customerEmail)
             throw 50001, 'this email has already been taken.', 1;
+		if @customerDOB > dateadd(year, -18, dbo.businessToday())
+			throw 50003, 'you must be at least 18 years old to create an account.', 1;
  
         -- random 9-digit number between 100000000 - 999999999, re-roll if already used
         declare @newID int;
@@ -267,7 +269,7 @@ end
  
 -- procedure customer: deactivate
 -- blocked while the customer has an active policy, an open claim, or an overdue payment.
-create procedure customer_Deactivate
+create or alter procedure customer_Deactivate
 (
     @customerID int
 )
@@ -276,7 +278,7 @@ begin
     set nocount on;
  
     begin try
-        declare @today date = cast(getdate() as date);
+        declare @today date = dbo.businessToday();
  
         if exists (select 1 from Policy
                    where customerID = @customerID
@@ -378,7 +380,7 @@ create table Claim
     policyID         int            not null,
     incidentDate     date           not null,
     submittedDate    date           not null
-        constraint df_Claim_submittedDate default cast(getdate() as date),
+        constraint df_Claim_submittedDate default dbo.businessToday(),
     claimDescription nvarchar(1000) not null,
     claimAmount      decimal(12, 2) not null,
     claimStatus      nvarchar(20)   not null
@@ -392,13 +394,12 @@ create table Claim
     constraint ck_Claim_claimID check (claimID between 1400000000 and 1799999999),
     constraint ck_Claim_claimAmount check (claimAmount > 0),
     constraint ck_Claim_claimDescription check (len(claimDescription) > 0),
-    constraint ck_Claim_incidentDate check (incidentDate <= submittedDate),
+	constraint ck_Claim_incidentDate check (incidentDate <= submittedDate),
     constraint ck_Claim_claimStatus check (claimStatus in ('Submitted', 'Under Review', 'Approved', 'Denied', 'Closed', 'Withdrawn')),
     constraint ck_Claim_approvedAmount check (approvedAmount is null or (approvedAmount >= 0 and approvedAmount <= claimAmount)),
     constraint ck_Claim_resolvedDate check (resolvedDate is null or resolvedDate >= submittedDate)
 );
 
- 
 
 -- Table Payment: the monthly payment schedule and transaction history.
 -- "Overdue" is not stored; it is worked out when reading
@@ -545,7 +546,7 @@ begin
         return null;
  
     -- exact age in years
-    declare @today date = cast(getdate() as date);
+    declare @today date = dbo.businessToday();
     declare @age int = datediff(year, @customerDOB, @today)
         - case when dateadd(year, datediff(year, @customerDOB, @today), @customerDOB) > @today then 1 else 0 end;
  
@@ -616,7 +617,7 @@ end
  
 -- procedure policy: create (buy a policy)
 -- recalculates the premium here, so the browser can never set the price.
--- the trigger create_policy builds the 12 payments.
+-- the procedure create_policy builds the 12 payments.
 create procedure create_Policy
 (
     @customerID     int,
@@ -631,7 +632,7 @@ begin
     begin try
         declare @dob date;
         declare @monthlyPremium decimal(10, 2);
-        declare @startDate date = cast(getdate() as date);
+        declare @startDate date = dbo.businessToday();
  
         select @dob = customerDOB
         from Customer
@@ -645,6 +646,15 @@ begin
  
         if @monthlyPremium is null
             throw 50021, 'invalid policy type, or coverage amount is outside the allowed range for that type.', 1;
+
+		-- one current policy per type; to get more coverage they upgrade the one they have
+        if exists (select 1
+                   from Policy
+                   where customerID = @customerID
+                     and policyTypeID = @policyTypeID
+                     and policyStatus in ('Pending', 'Active')
+                     and endDate >= dbo.businessToday())
+            throw 50025, 'you already have an active policy of this type.', 1;
  
         -- random policy number (1000000000 - 1399999999), re-roll if already used
         declare @newID int;
@@ -684,13 +694,82 @@ begin
            p.startDate,
            p.endDate,
            p.policyStatus,
-           case when p.policyStatus = 'Active' and p.endDate < cast(getdate() as date)
+           case when p.policyStatus = 'Active' and p.endDate < dbo.businessToday()
                 then 'Expired'
                 else p.policyStatus end as displayStatus
     from Policy p
     join PolicyType pt on pt.policyTypeID = p.policyTypeID
     where p.customerID = @customerID
     order by p.startDate desc;
+end
+
+--Procedure: update_PolicyCoverage, updates require good standing and changes policy
+-- Also updates future unpaid payments together in one transaction
+create procedure update_PolicyCoverage
+(
+    @customerID        int,
+    @policyID          int,
+    @newCoverageAmount decimal(12, 2)
+)
+as
+begin
+    set nocount on;
+    set xact_abort on;
+
+    begin try
+        declare @today date = dbo.businessToday();
+        declare @typeID int, @currentCoverage decimal(12, 2), @status nvarchar(20), @endDate date, @dob date;
+
+        -- the policy must belong to this customer
+        select @typeID = p.policyTypeID, @currentCoverage = p.coverageAmount,
+               @status = p.policyStatus, @endDate = p.endDate, @dob = c.customerDOB
+        from Policy p
+        join Customer c on c.customerID = p.customerID
+        where p.policyID = @policyID
+          and p.customerID = @customerID;
+
+        if @typeID is null or @status not in ('Pending', 'Active') or @endDate < @today
+            throw 50026, 'policy not found, or its coverage can no longer be changed.', 1;
+
+        if @newCoverageAmount = @currentCoverage
+            throw 50027, 'the new coverage is the same as your current coverage.', 1;
+
+        if exists (select 1 from Claim
+                   where policyID = @policyID and claimStatus in ('Submitted', 'Under Review'))
+            throw 50028, 'cannot change coverage: this policy has an open claim.', 1;
+
+        if exists (select 1 from Payment
+                   where policyID = @policyID and paymentStatus = 'Pending' and dueDate < @today)
+            throw 50029, 'cannot change coverage: this policy has an overdue payment. pay it first.', 1;
+
+        -- calculatePremium returns NULL when the amount is outside the type's allowed range
+        declare @newPremium decimal(10, 2) = dbo.calculatePremium(@typeID, @newCoverageAmount, @dob);
+
+        if @newPremium is null
+            throw 50021, 'invalid policy type, or coverage amount is outside the allowed range for that type.', 1;
+
+        begin transaction;
+
+            update Policy
+            set coverageAmount = @newCoverageAmount,
+                monthlyPremium = @newPremium
+            where policyID = @policyID;
+
+            -- payments not yet due use the new price; paid and overdue ones keep what they were
+            update Payment
+            set amount = @newPremium
+            where policyID = @policyID
+              and paymentStatus = 'Pending'
+              and dueDate >= @today;
+
+        commit transaction;
+
+        select @policyID as policyID, @newCoverageAmount as coverageAmount, @newPremium as monthlyPremium;
+    end try
+    begin catch
+        if @@trancount > 0 rollback transaction;
+        throw;
+    end catch
 end
  
  -- procedure policy: cancel (replaces deleting a policy)
@@ -719,7 +798,7 @@ begin
                    where pay.policyID = @policyID
                      and p.customerID = @customerID
                      and pay.paymentStatus = 'Pending'
-                     and pay.dueDate < cast(getdate() as date))
+                     and pay.dueDate < dbo.businessToday())
             throw 50024, 'cannot cancel: this policy has an overdue payment. pay it first.', 1;
  
         update Policy
@@ -748,7 +827,7 @@ as
 begin
     set nocount on;
  
-    declare @today date = cast(getdate() as date);
+    declare @today date = dbo.businessToday();
  
     select pay.paymentID,
            pay.policyID,
@@ -825,8 +904,8 @@ begin
         )
         update nextpayment
         set paymentStatus = 'Paid',
-            paidDate = sysdatetime(),
-            lateFee = dbo.calculateLateFee(dueDate, amount, cast(getdate() as date))
+            paidDate = dbo.businessNow(),
+            lateFee = dbo.calculateLateFee(dueDate, amount, dbo.businessToday())
         output inserted.paymentID,
                inserted.dueDate,
                inserted.amount,
@@ -845,7 +924,7 @@ end
  
  
 -- claim: submit
-create procedure submit_Claim
+create or alter procedure submit_Claim
 (
     @customerID       int,
     @policyID         int,
@@ -859,7 +938,7 @@ begin
     set nocount on;
 
     begin try
-        declare @today date = cast(getdate() as date);
+        declare @today date = dbo.businessToday();
         declare @status nvarchar(20), @startDate date, @endDate date, @coverage decimal(12, 2);
 
         -- the policy must belong to this customer
@@ -940,7 +1019,7 @@ begin
     begin try
         update c
         set claimStatus = 'Withdrawn',
-            resolvedDate = cast(getdate() as date)
+            resolvedDate = dbo.businessToday()
         from Claim c
         join Policy p on p.policyID = c.policyID
         where c.claimID = @claimID
@@ -959,7 +1038,7 @@ end
  
 -- procedure claim: review / update status  (ADMIN ONLY)
 -- allowed moves: submitted -> under review -> approved or denied -> closed
-create procedure update_ClaimStatus
+create or alter procedure update_ClaimStatus
 (
     @claimID        int,
     @newStatus      nvarchar(20),
@@ -1004,7 +1083,7 @@ begin
             approvedAmount = case when @newStatus = 'Approved' then @approvedAmount else approvedAmount end,
             decisionNote   = coalesce(@decisionNote, decisionNote),
             resolvedDate   = case when @newStatus in ('Approved', 'Denied')
-                                  then cast(getdate() as date) else resolvedDate end
+                                  then dbo.businessToday() else resolvedDate end
         where claimID = @claimID;
     end try
     begin catch
@@ -1012,7 +1091,22 @@ begin
     end catch
 end
 
-select * from Customer
-select * from Policy
-select * from Payment
-select * from Claim
+-- today's date in the business time zone, not in the server's UTC
+create function businessToday()
+returns date
+as
+begin
+    return cast(sysdatetimeoffset() at time zone 'Eastern Standard Time' as date);
+end
+
+
+-- the current date and time in the business time zone
+create function businessNow()
+returns datetime2(0)
+as
+begin
+    return cast(sysdatetimeoffset() at time zone 'Eastern Standard Time' as datetime2(0));
+end
+
+
+update Payment set dueDate = dateadd(day, -365, dbo.businessToday()) where paymentID = 1986649944;

@@ -1,35 +1,57 @@
 /* Styles for the Policies page only (Angular scopes them to this component).
- Covers the policies table, the quote form, and the quote result box. */
+ Covers the policy summary cards, the quote form, and the quote result box.
+ Tiles, tables, badges and progress bars come from the global styles (src/styles/_components.scss). */
 
-// lets the table scroll sideways on small screens instead of overflowing the page
-.table-wrap { overflow-x: auto; margin-bottom: 8px; }
-table { width: 100%; }
 .full { width: 100%; }
 .error { color: var(--mat-sys-error); margin: 0 0 12px; }
 
+/* policy summary cards: two per row on wide screens, one per row on phones */
+.policy-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; }
+.policy-card {
+  background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 16px;
+  padding: 22px 24px; display: flex; flex-direction: column; gap: 18px;
+  border-left: 5px solid var(--app-blue);
+}
+// cancelled and expired policies are greyed out so the current ones stand out
+.policy-card.past { border-left-color: #C4C8CE; opacity: 0.75; }
+.policy-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.policy-head h3 { margin: 0; font-size: 1.3rem; }
+.policy-num { font-weight: 600; color: var(--app-muted); font-size: 1rem; }
+.policy-level { color: var(--app-muted); font-weight: 600; margin-top: 2px; }
+// the four key facts in a 2x2 grid: small grey label above a bold value
+.policy-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; margin: 0; }
+.policy-facts dt { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--app-muted); }
+.policy-facts dd { margin: 2px 0 0; font-weight: 700; }
+.policy-balance { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--app-border); }
+.balance-line { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+// gap between the remaining amount and the "(includes ... in late fees)" note (Angular drops the space in the template)
+.fee-note { margin-left: 6px; }
+.policy-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+// cancelling is the risky choice, so it's a plain text button in the error color
+.cancel-link { --mat-button-text-label-text-color: var(--mat-sys-error); }
+
+/* get-a-new-policy form */
+.quote-card { margin-bottom: 8px; }
+.quote-button { height: 46px; padding: 0 28px; }
 // quote result: separated from the form by a divider line, with the monthly price shown large
-.quote { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--mat-sys-outline-variant); }
-.price { font-size: 1.75rem; font-weight: 500; margin: 4px 0; }
-.price span { font-size: 1rem; font-weight: 400; }
+.quote { margin-top: 28px; padding: 24px; border-radius: 14px; background: var(--app-blue-soft); }
+.quote p { margin: 0 0 8px; }
+.price { font-size: 2rem; font-weight: 800; margin: 8px 0 !important; }
+.price span { font-size: 1rem; font-weight: 600; color: var(--app-muted); }
 // Coverage level list
 /* The coverage-level radio list */
-.level-title { margin: 8px 0 4px; font-weight: 500; }
-.levels { display: flex; flex-direction: column; margin-bottom: 12px; }
-.level { margin-bottom: 4px; }
-.level-desc { display: block; font-size: 0.85rem; opacity: 0.8; white-space: normal; max-width: 520px; }
+.level-title { margin: 8px 0 10px; font-weight: 700; font-size: 1.05rem; }
+.levels { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+.level { padding: 6px 0; }
+.level-desc { display: block; font-size: 0.9rem; color: var(--app-muted); white-space: normal; max-width: 560px; margin-top: 2px; }
 // small grey note under the amount when it was adjusted to fit the chosen level
-.note { font-size: 0.85rem; opacity: 0.8; margin: 0 0 12px; }
-
-/* balance card, plan picker, remaining column */
-.balance { margin-bottom: 16px; }
-.balance-label { font-size: 0.85rem; opacity: 0.8; }
-.balance-amount { font-size: 2rem; font-weight: 500; }
-.balance-note { opacity: 0.8; }
-.paid-so-far { font-size: 0.8rem; opacity: 0.7; }
-.plans { display: flex; flex-direction: column; margin: 8px 0 12px; }
-.plan { margin-bottom: 4px; }
-.plan-desc { display: block; font-size: 0.85rem; opacity: 0.8; white-space: normal; }
+.note { font-size: 0.9rem; color: var(--app-muted); margin: 0 0 12px; }
 
 /* saved quotes */
-.quote-note { font-size: 0.85rem; opacity: 0.75; }
+.quote-note { font-size: 0.9rem; color: var(--app-muted); }
 .actions { white-space: nowrap; }
+
+@media (max-width: 480px) {
+  .policy-list { grid-template-columns: 1fr; }
+  .policy-facts { grid-template-columns: 1fr; }
+}

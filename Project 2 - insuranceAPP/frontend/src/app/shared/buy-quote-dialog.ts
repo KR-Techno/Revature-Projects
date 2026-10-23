@@ -30,12 +30,12 @@ export interface BuyQuoteData { quote: SavedQuote; }
       <mat-radio-group class="plans" [value]="plan()" (change)="plan.set($event.value)" aria-label="Payment plan">
         <mat-radio-button value="Monthly" class="plan">
           <strong>Pay monthly</strong>
-          <span class="plan-desc">{{ data.quote.monthlyPremium | currency }} a month for 12 months ({{ data.quote.yearlyTotal | currency }} total)</span>
+          <span class="plan-desc">{{ data.quote.monthlyPremium | currency }}/month for 12 months ({{ data.quote.yearlyTotal | currency }} total)</span>
         </mat-radio-button>
         <mat-radio-button value="Yearly" class="plan">
           <strong>Pay yearly</strong>
           <!-- the saving is the difference between the 12 monthly payments and the one-time price -->
-          <span class="plan-desc">{{ data.quote.yearlyDiscountedTotal | currency }} once. You save {{ (data.quote.yearlyTotal - data.quote.yearlyDiscountedTotal) | currency }}</span>
+          <span class="plan-desc">{{ data.quote.yearlyDiscountedTotal | currency }}/year in one payment. You save {{ (data.quote.yearlyTotal - data.quote.yearlyDiscountedTotal) | currency }}</span>
         </mat-radio-button>
       </mat-radio-group>
 

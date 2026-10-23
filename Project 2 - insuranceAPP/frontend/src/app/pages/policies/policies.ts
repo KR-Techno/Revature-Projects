@@ -1,11 +1,12 @@
 /* Policies page: lists the customer's policies, gets a quote for a new one,
 and lets them buy or cancel policies.
- All API calls go through PolicyService and QuoteService; buying and cancelling ask for confirmation first. */
+ All API calls go through PolicyService and QuoteService (and PaymentService for late fees); buying and cancelling ask for confirmation first. */
 import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, FormControl, FormGroupDirective, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog } from '@angular/material/dialog';
@@ -16,8 +17,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { PaymentService } from '../../services/payment.service';
 import { PolicyService } from '../../services/policy.service';
 import { QuoteService } from '../../services/quote.service';
+import { Payment } from '../../models/payment.models';
 import { CreateQuoteRequest, Policy, PolicyType, SavedQuote } from '../../models/policy.models';
 import { BuyQuoteDialog } from '../../shared/buy-quote-dialog';
 import { ConfirmData, ConfirmDialog } from '../../shared/confirm-dialog';
@@ -27,7 +30,7 @@ import { statusClass } from '../../utils/status-class';
 
 @Component({
   selector: 'app-policies',
-  imports: [ReactiveFormsModule, CurrencyPipe, DatePipe, MatCardModule, MatFormFieldModule, MatInputModule,
+  imports: [ReactiveFormsModule, RouterLink, CurrencyPipe, DatePipe, MatCardModule, MatFormFieldModule, MatInputModule,
             MatSelectModule, MatButtonModule, MatTableModule, MatSlideToggleModule, MatRadioModule],
   templateUrl: './policies.html',
   styleUrl: './policies.scss'
@@ -35,6 +38,7 @@ import { statusClass } from '../../utils/status-class';
 export class Policies {
   private svc = inject(PolicyService);
   private quoteSvc = inject(QuoteService);
+  private paymentSvc = inject(PaymentService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
   private dialog = inject(MatDialog);
@@ -44,6 +48,7 @@ export class Policies {
   // page state as signals, so the template updates automatically when they change
   types = signal<PolicyType[]>([]);
   policies = signal<Policy[]>([]);
+  payments = signal<Payment[]>([]);          // only used to add late fees to the balances
   quote = signal<SavedQuote | null>(null);   // the quote just requested (it is saved in the database)
   quotes = signal<SavedQuote[]>([]);         // all of the customer's saved quotes
   loading = signal(false);
@@ -52,21 +57,24 @@ export class Policies {
   showPast = signal(false);       // whether the table includes cancelled and expired policies
   adjusted = signal('');          // note shown when picking a level moved the amount to fit its range
   statusClass = statusClass;      // exposed so the template can color the status badges
-  // which table columns to show, in order (each name matches a matColumnDef in policies.html)
-  columns = ['policyID', 'typeName', 'levelName', 'coverageAmount', 'monthlyPremium', 'paymentPlan', 'remaining', 'dates', 'status', 'actions'];
 
-  // saved quotes: only active ones show unless the toggle is on
+  // saved quotes table: which columns to show, in order (each name matches a matColumnDef in policies.html);
+  // only active quotes show unless the toggle is on
   quoteColumns = ['quoteID', 'policy', 'coverageAmount', 'monthlyPremium', 'expiry', 'status', 'actions'];
   visibleQuotes = computed(() => this.showOldQuotes() ? this.quotes() : this.quotes().filter(q => q.displayStatus === 'Active'));
   oldQuoteCount = computed(() => this.quotes().filter(q => q.displayStatus !== 'Active').length);
 
-  // the table hides past policies unless the toggle is on; pastCount labels the toggle
+  // true when the customer owes an overdue payment: changing coverage and cancelling are blocked until it is paid
+  hasOverdue = computed(() => this.policies().some(p => p.hasOverduePayment));
+
+  // the policy cards hide past policies unless the toggle is on; pastCount labels the toggle
   visiblePolicies = computed(() => this.showPast() ? this.policies() : this.policies().filter(p => this.isCurrent(p)));
   pastCount = computed(() => this.policies().filter(p => !this.isCurrent(p)).length);
 
   // the balance card: what is still left to pay across the customer's current policies, and when the next payment is due
   currentPolicies = computed(() => this.policies().filter(p => this.isCurrent(p)));
-  totalRemaining = computed(() => this.currentPolicies().reduce((sum, p) => sum + p.remainingBalance, 0));
+  totalRemaining = computed(() => this.currentPolicies().reduce((sum, p) => sum + this.leftToPay(p), 0));
+  totalLateFees = computed(() => this.currentPolicies().reduce((sum, p) => sum + this.lateFees(p), 0));
   nextDue = computed(() => {
     const dates = this.currentPolicies().map(p => p.nextDueDate).filter((d): d is string => !!d).sort();   // "yyyy-mm-dd" sorts correctly as text
     return dates[0] ?? null;
@@ -137,10 +145,15 @@ export class Policies {
     });
   }
 
-  // fetches the customer's policies; called when the page opens and after buying, changing or cancelling
+  // fetches the customer's policies for the cards, plus their payments for the late fees; called when the page opens
+  // and after buying, changing or cancelling (cancelling also cancels unpaid payments, so both lists are refreshed)
   private loadPolicies() {
     this.svc.getMine().subscribe({
       next: p => this.policies.set(p),
+      error: (err: HttpErrorResponse) => this.snack.open(apiErrorMessage(err), 'OK', { duration: 8000 })
+    });
+    this.paymentSvc.getMine().subscribe({
+      next: p => this.payments.set(p),
       error: (err: HttpErrorResponse) => this.snack.open(apiErrorMessage(err), 'OK', { duration: 8000 })
     });
   }
@@ -214,6 +227,23 @@ export class Policies {
   // a policy that is still running (Active or Pending); only these get the Change coverage and Cancel buttons
   isCurrent(p: Policy) {
     return p.displayStatus === 'Active' || p.displayStatus === 'Pending';
+  }
+
+  // late fees on the policy's unpaid payments (the policy's remainingBalance doesn't count them)
+  lateFees(p: Policy) {
+    return this.payments()
+      .filter(x => x.policyID === p.policyID && x.paymentStatus === 'Pending')
+      .reduce((sum, x) => sum + x.lateFee, 0);
+  }
+
+  // what is really left to pay on the policy: the remaining balance plus any late fees
+  leftToPay(p: Policy) {
+    return p.remainingBalance + this.lateFees(p);
+  }
+
+  // how much of the policy's total is paid off, for the progress bar on its card
+  percentPaid(p: Policy) {
+    return p.policyTotal > 0 ? Math.round(p.paidSoFar / p.policyTotal * 100) : 0;
   }
 
   // asks for confirmation, cancels the policy, then refreshes the table

@@ -1,8 +1,10 @@
-/* Admin "Policy products" page: lists the products customers can buy today, and a form to create a new one
+/* Admin "Policy products" page: lists the products customers can buy today (with how many customers hold each, and a
+ pop-up listing those customers), and a form to create a new one
  (for example Disability): name, yearly rate, age factors, and 1-5 coverage levels with descriptions and ranges.
  Creating a product asks for the admin's password. */
 import { Component, inject, signal, viewChild } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
+import { MatTableModule } from '@angular/material/table';
 import { AbstractControl, FormBuilder, FormControl, FormGroupDirective, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -11,9 +13,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AdminService } from '../../services/admin.service';
-import { PolicyService } from '../../services/policy.service';
-import { CreateProductRequest } from '../../models/admin.models';
-import { PolicyType } from '../../models/policy.models';
+import { AdminProductSummary, CreateProductRequest } from '../../models/admin.models';
+import { ProductCustomersDialog } from '../../shared/product-customers-dialog';
 import { PasswordPromptDialog, PasswordPromptData } from '../../shared/password-prompt-dialog';
 
 // the maximum coverage of a level can't be below its minimum
@@ -25,15 +26,43 @@ const validRange = (group: AbstractControl): ValidationErrors | null => {
 
 @Component({
   selector: 'app-admin-products',
-  imports: [ReactiveFormsModule, CurrencyPipe, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [ReactiveFormsModule, CurrencyPipe, MatTableModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
   template: `
-    <h1>Policy products</h1>
+    <div class="page-header">
+      <h1>Policy products</h1>
+      <p class="page-sub">See what customers can buy today, or create a new product.</p>
+    </div>
 
-    <!-- what customers can already buy, with each product's level names -->
-    <h2>Available to customers now</h2>
-    @for (t of types(); track t.policyTypeID) {
-      <p class="existing"><strong>{{ t.typeName }}</strong>: {{ levelSummary(t) }}</p>
-    }
+    <!-- what customers can already buy: each product's level names, how many customers hold it, and a button to see them -->
+    <h2 class="first">Available to customers now</h2>
+    <div class="table-wrap">
+      <table mat-table [dataSource]="products()">
+        <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
+        <ng-container matColumnDef="typeName">
+          <th mat-header-cell *matHeaderCellDef>Product</th>
+          <td mat-cell *matCellDef="let t"><strong>{{ t.typeName }}</strong></td>
+        </ng-container>
+        <ng-container matColumnDef="levels">
+          <th mat-header-cell *matHeaderCellDef>Coverage levels</th>
+          <td mat-cell *matCellDef="let t">{{ t.levels }}</td>
+        </ng-container>
+        <ng-container matColumnDef="customers">
+          <th mat-header-cell *matHeaderCellDef>Customers</th>
+          <td mat-cell *matCellDef="let t">{{ t.customers }}</td>
+        </ng-container>
+        <!-- disabled when nobody holds the product, since the pop-up would be empty -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let t" class="actions">
+            <button mat-button [disabled]="t.customers === 0" (click)="viewCustomers(t)">View customers</button>
+          </td>
+        </ng-container>
+
+        <!-- the header row and one row per product, using the column order from "productColumns" below -->
+        <tr mat-header-row *matHeaderRowDef="productColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: productColumns"></tr>
+      </table>
+    </div>
 
     <h2>Create a new policy product</h2>
     <mat-card>
@@ -50,7 +79,7 @@ const validRange = (group: AbstractControl): ValidationErrors | null => {
             <mat-label>Yearly rate</mat-label>
             <input matInput type="number" step="0.01" formControlName="yearlyRatePercent" />
             <span matTextSuffix>% of coverage per year</span>
-            <mat-hint>1 means a $100,000 policy costs $1,000 a year before the factors below</mat-hint>
+            <mat-hint>1 means a $100,000 policy costs $1,000/year before the factors below</mat-hint>
             <mat-error>Enter a rate between 0.01 and 99</mat-error>
           </mat-form-field>
 
@@ -120,7 +149,7 @@ const validRange = (group: AbstractControl): ValidationErrors | null => {
 
                   <!-- live example so the admin can see what the numbers add up to -->
                   @if (example(i); as price) {
-                    <p class="example">Example: about {{ price | currency }} a month at the maximum coverage, for a customer aged 25 to 64.</p>
+                    <p class="example">Example: about {{ price | currency }}/month at the maximum coverage, for a customer aged 25 to 64.</p>
                   }
 
                   <!-- a product always keeps at least one level -->
@@ -146,26 +175,29 @@ const validRange = (group: AbstractControl): ValidationErrors | null => {
   styles: `
     .full { width: 100%; }
     /* fields side by side, wrapping onto new lines on narrow screens */
-    .row { display: flex; flex-wrap: wrap; gap: 12px; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; }
     .grow { flex: 1 1 220px; }
-    .section { margin: 16px 0 8px; font-weight: 500; }
-    .level { margin-bottom: 12px; }
-    .existing { margin: 4px 0; }
-    .example { opacity: 0.8; font-size: 0.9rem; }
+    .section { margin: 24px 0 12px; font-weight: 700; }
+    .level { margin-bottom: 16px; background: var(--app-bg); }
+    h2.first { margin-top: 0; }
+    .actions { white-space: nowrap; text-align: right; }
+    .example { color: var(--app-muted); font-size: 0.9rem; }
     .error { color: var(--mat-sys-error); margin: 0 0 8px; }
-    .submit { margin-top: 20px; }
+    .submit { margin-top: 28px; }
+    .submit button { height: 46px; padding: 0 28px; }
   `
 })
 export class AdminProducts {
   private fb = inject(FormBuilder);
   private svc = inject(AdminService);
-  private policySvc = inject(PolicyService);
   private dialog = inject(MatDialog);
   private snack = inject(MatSnackBar);
   // resetting through the form directive also clears the "submitted" state, so empty fields don't turn red after a successful create
   private formDirective = viewChild(FormGroupDirective);
 
-  types = signal<PolicyType[]>([]);   // the products customers can already buy
+  products = signal<AdminProductSummary[]>([]);   // the products customers can buy, with how many customers hold each
+  // which product table columns to show, in order (each name matches a matColumnDef above)
+  productColumns = ['typeName', 'levels', 'customers', 'actions'];
 
   // a fresh, empty coverage level card (price factor starts at 1.00 = standard)
   private newLevel() {
@@ -191,16 +223,17 @@ export class AdminProducts {
     levels: this.levels
   });
 
-  constructor() { this.loadTypes(); }
+  constructor() { this.loadProducts(); }
 
-  // reuses the customer catalog endpoint, so the list shows exactly what customers see
-  private loadTypes() {
-    this.policySvc.getTypes().subscribe(t => this.types.set(t));
+  // fetches the product list (level names come pre-joined from SQL, e.g. "Liability Only, Full Coverage");
+  // called when the page opens and after a new product is created
+  private loadProducts() {
+    this.svc.getProducts().subscribe(p => this.products.set(p));
   }
 
-  // "Liability Only, Full Coverage, Full Coverage Premium"
-  levelSummary(t: PolicyType) {
-    return t.levels.map(l => l.levelName).join(', ');
+  // opens the list of customers who currently hold this product
+  viewCustomers(t: AdminProductSummary) {
+    this.dialog.open(ProductCustomersDialog, { data: { policyTypeID: t.policyTypeID, typeName: t.typeName }, width: '960px', maxWidth: '95vw' });
   }
 
   addLevel() { if (this.levels.length < 5) this.levels.push(this.newLevel()); }
@@ -256,7 +289,7 @@ export class AdminProducts {
         this.levels.clear();
         this.levels.push(this.newLevel());
         this.formDirective()?.resetForm({ typeName: '', yearlyRatePercent: null, factorUnder25: 1, factor25to64: 1, factor65plus: 1 });
-        this.loadTypes();
+        this.loadProducts();
       });
   }
 }

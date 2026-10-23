@@ -121,3 +121,32 @@ public class PolicyTypeCreatedDto
 {
     public int PolicyTypeID { get; set; }
 }
+
+// matches the columns admin_GetProductSummary returns
+public class AdminProductSummaryDto
+{
+    public int PolicyTypeID { get; set; }
+    public string TypeName { get; set; } = "";
+    public string? Levels { get; set; }          // level names in order, e.g. "Liability Only, Full Coverage, Full Coverage Premium"
+    public int Customers { get; set; }           // customers with a current policy of this product
+}
+
+// matches the columns admin_GetProductCustomers returns: one customer's current policy of the product
+public class AdminProductCustomerDto
+{
+    public int CustomerID { get; set; }
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public DateOnly CustomerDOB { get; set; }
+    public string CustomerEmail { get; set; } = "";
+    public string CustomerPhone { get; set; } = "";
+    public bool IsActive { get; set; }
+    public int PolicyID { get; set; }
+    public string LevelName { get; set; } = "";
+    public decimal CoverageAmount { get; set; }
+    public decimal MonthlyPremium { get; set; }
+    public string PaymentPlan { get; set; } = "";
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public int OverduePayments { get; set; }     // the customer's unpaid payments past their due date
+}

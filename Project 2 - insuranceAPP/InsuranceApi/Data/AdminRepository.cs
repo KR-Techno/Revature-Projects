@@ -18,6 +18,8 @@ public interface IAdminRepository
     Task<List<AdminClaimDto>> GetClaimsAsync();
     Task<List<AdminPaymentDto>> GetPaymentsAsync();
     Task<List<AdminQuoteDto>> GetQuotesAsync();
+    Task<List<AdminProductSummaryDto>> GetProductSummaryAsync();
+    Task<List<AdminProductCustomerDto>> GetProductCustomersAsync(int policyTypeId);
     Task DecideClaimAsync(int claimId, string decision, decimal? approvedAmount, string? decisionNote);
     Task<int> CreatePolicyTypeAsync(CreatePolicyTypeRequestDto request);
 }
@@ -71,6 +73,14 @@ public class AdminRepository : IAdminRepository
     // every quote customers have requested, newest first
     public Task<List<AdminQuoteDto>> GetQuotesAsync() =>
         _db.Database.SqlQuery<AdminQuoteDto>($"EXEC admin_GetQuotes").ToListAsync();
+
+    // every policy product, with its level names and how many customers currently hold it
+    public Task<List<AdminProductSummaryDto>> GetProductSummaryAsync() =>
+        _db.Database.SqlQuery<AdminProductSummaryDto>($"EXEC admin_GetProductSummary").ToListAsync();
+
+    // the customers who currently hold one product, each with their policy details
+    public Task<List<AdminProductCustomerDto>> GetProductCustomersAsync(int policyTypeId) =>
+        _db.Database.SqlQuery<AdminProductCustomerDto>($"EXEC admin_GetProductCustomers {policyTypeId}").ToListAsync();
 
     // approves or denies a claim; null amount/note are sent to SQL as NULL
     public Task DecideClaimAsync(int claimId, string decision, decimal? approvedAmount, string? decisionNote) =>

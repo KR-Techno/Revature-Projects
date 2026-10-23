@@ -1,9 +1,7 @@
 /* Styles for the Dashboard page only (Angular scopes them to this component).
- The overdue banner and status badge come from the global styles.scss. */
+ The summary tiles, overdue banner and status badge come from the global styles (src/styles/_components.scss). */
 
-// summary cards side by side, wrapping onto new rows on narrow screens (each at least 240px wide)
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
-// the big number on each card
-.stat { font-size: 2rem; font-weight: 500; margin: 4px 0; }
-.actions { margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap; }
+.actions { display: flex; gap: 16px; flex-wrap: wrap; }
+.actions a { height: 48px; padding: 0 28px; }
+.tile-actions a { margin-left: -12px; }
 .error { color: var(--mat-sys-error); }

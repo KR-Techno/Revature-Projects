@@ -1,3 +1,5 @@
+/* Login page, which is also the welcome screen customers land on: the logo, name and slogan beside the login box.
+ Sends the email and password to POST /api/auth/login through AuthService, then opens the dashboard. */
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -8,11 +10,12 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { AuthService } from '../../services/auth.service';
+import { BrandMark } from '../../shared/brand-mark';
 import { apiErrorMessage } from '../../utils/api-error';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, RouterLink, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule],
+  imports: [ReactiveFormsModule, RouterLink, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, BrandMark],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })

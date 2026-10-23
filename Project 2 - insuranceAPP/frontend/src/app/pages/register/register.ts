@@ -13,6 +13,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../../services/auth.service';
+import { BrandMark } from '../../shared/brand-mark';
 import { apiErrorMessage } from '../../utils/api-error';
 import { PASSWORD_PATTERN, matchesField } from '../../utils/password-rules';
 import { map } from 'rxjs';
@@ -43,7 +44,7 @@ function adultValidator(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-register',
   imports: [ReactiveFormsModule, RouterLink, MatCardModule, MatFormFieldModule, MatInputModule,
-            MatSelectModule, MatButtonModule, MatIconModule],
+            MatSelectModule, MatButtonModule, MatIconModule, BrandMark],
   templateUrl: './register.html',
   styleUrl: './register.scss'
 })

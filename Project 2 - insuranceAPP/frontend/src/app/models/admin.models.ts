@@ -76,6 +76,33 @@ export interface AdminQuote {
   policyID: number | null;   // the policy bought from this quote, if any
 }
 
+// one row of the admin's product list (matches the columns admin_GetProductSummary returns)
+export interface AdminProductSummary {
+  policyTypeID: number;
+  typeName: string;
+  levels: string | null;      // level names in order, e.g. "Liability Only, Full Coverage"
+  customers: number;          // customers with a current policy of this product
+}
+
+// one customer's current policy under a product (matches the columns admin_GetProductCustomers returns)
+export interface AdminProductCustomer {
+  customerID: number;
+  firstName: string;
+  lastName: string;
+  customerDOB: string;        // "yyyy-mm-dd"
+  customerEmail: string;
+  customerPhone: string;
+  isActive: boolean;
+  policyID: number;
+  levelName: string;
+  coverageAmount: number;
+  monthlyPremium: number;
+  paymentPlan: string;        // Monthly or Yearly
+  startDate: string;
+  endDate: string;
+  overduePayments: number;    // unpaid payments past their due date
+}
+
 export type ClaimDecision = 'Approved' | 'Denied';
 export interface DecideClaimRequest {
   decision: ClaimDecision;

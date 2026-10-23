@@ -50,4 +50,5 @@ export interface Policy {
   remainingBalance: number; // still left to pay (not counting late fees)
   policyTotal: number;      // paid so far + remaining
   nextDueDate: string | null;   // "yyyy-mm-dd", or null when nothing is left to pay
+  hasOverduePayment: boolean;   // the customer has an overdue payment, so Change coverage and Cancel are blocked
 }

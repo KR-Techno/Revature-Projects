@@ -1,106 +1,104 @@
-<!-- Policies page: a table of the customer's policies on top, and the get-a-quote / buy form underneath -->
-<h1>Your policies</h1>
+<!-- Policies page: a summary card for each of the customer's policies on top, then the get-a-quote / buy form,
+     then their saved quotes -->
+<div class="page-header">
+  <h1>Your policies</h1>
+  <p class="page-sub">Review your coverage, change it, or get a quote for something new.</p>
+</div>
 
-<!-- balance card: what is still left to pay on the current policies -->
+<!-- shown while the customer owes an overdue payment (the Change coverage and Cancel buttons are disabled until it's paid) -->
+@if (hasOverdue()) {
+  <div class="alert">
+    <!-- wrapped in one span: the banner is a flex row, so loose words would be spaced apart like separate items -->
+    <span>You have an overdue payment. Pay it on the Payments page before changing your coverage or cancelling a policy.</span>
+    <a routerLink="/payments">Go to payments</a>
+  </div>
+}
+
+<!-- balance tile: what is still left to pay on the current policies -->
 @if (currentPolicies().length > 0) {
-  <mat-card class="balance">
-    <mat-card-content>
-      <div class="balance-label">Remaining balance</div>
-      <div class="balance-amount">{{ totalRemaining() | currency }}</div>
-      <div class="balance-note">
+  <div class="tiles">
+    <div class="tile blue">
+      <span class="tile-label">Remaining balance</span>
+      <span class="tile-value">{{ totalRemaining() | currency }}</span>
+      <!-- only mentioned when there are late fees, so the customer can see why the total is higher -->
+      @if (totalLateFees() > 0) {
+        <p class="tile-note">Includes <strong>{{ totalLateFees() | currency }}</strong> in late fees</p>
+      }
+      <p class="tile-note">
         across {{ currentPolicies().length }} active {{ currentPolicies().length === 1 ? 'policy' : 'policies' }}
         <!-- only shown while at least one payment is still unpaid -->
         @if (nextDue(); as d) {
-          · next payment due {{ d | date:'MM/dd/yyyy' }}
+          · next payment due <strong>{{ d | date:'MMM d, y' }}</strong>
         }
-      </div>
-    </mat-card-content>
-  </mat-card>
+      </p>
+    </div>
+  </div>
 }
 
-<!-- the table shows only current policies by default; this toggle (only shown if there are past ones) reveals the rest -->
+<!-- the list shows only current policies by default; this toggle (only shown if there are past ones) reveals the rest -->
 @if (pastCount() > 0) {
-  <mat-slide-toggle [checked]="showPast()" (change)="showPast.set($event.checked)">
-    Show cancelled and expired policies ({{ pastCount() }})
-  </mat-slide-toggle>
+  <div class="toggle-row">
+    <mat-slide-toggle [checked]="showPast()" (change)="showPast.set($event.checked)">
+      Show cancelled and expired policies ({{ pastCount() }})
+    </mat-slide-toggle>
+  </div>
 }
 
-<!-- friendly message instead of an empty table: either no policies at all, or only past ones that are hidden -->
+<!-- friendly message instead of an empty list: either no policies at all, or only past ones that are hidden -->
 @if (visiblePolicies().length === 0) {
-  <p>{{ policies().length === 0 ? "You don't have any policies yet. Get a quote below to start one." : "You have no active policies." }}</p>
+  <p class="muted">{{ policies().length === 0 ? "You don't have any policies yet. Get a quote below to start one." : "You have no active policies." }}</p>
 } @else {
-  <div class="table-wrap">
-    <table mat-table [dataSource]="visiblePolicies()">
-      <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
-      <ng-container matColumnDef="policyID">
-        <th mat-header-cell *matHeaderCellDef>Policy #</th>
-        <td mat-cell *matCellDef="let p">{{ p.policyID }}</td>
-      </ng-container>
-      <ng-container matColumnDef="typeName">
-        <th mat-header-cell *matHeaderCellDef>Type</th>
-        <td mat-cell *matCellDef="let p">{{ p.typeName }}</td>
-      </ng-container>
-      <!-- which tier of the product the policy is on (e.g. Full Coverage) -->
-      <ng-container matColumnDef="levelName">
-        <th mat-header-cell *matHeaderCellDef>Coverage level</th>
-        <td mat-cell *matCellDef="let p">{{ p.levelName }}</td>
-      </ng-container>
-      <ng-container matColumnDef="coverageAmount">
-        <th mat-header-cell *matHeaderCellDef>Coverage</th>
-        <td mat-cell *matCellDef="let p">{{ p.coverageAmount | currency }}</td>
-      </ng-container>
-      <ng-container matColumnDef="monthlyPremium">
-        <th mat-header-cell *matHeaderCellDef>Monthly</th>
-        <td mat-cell *matCellDef="let p">{{ p.monthlyPremium | currency }}</td>
-      </ng-container>
-      <!-- Monthly or Yearly, as chosen when the policy was bought -->
-      <ng-container matColumnDef="paymentPlan">
-        <th mat-header-cell *matHeaderCellDef>Plan</th>
-        <td mat-cell *matCellDef="let p">{{ p.paymentPlan }}</td>
-      </ng-container>
-      <!-- what is still left to pay on this policy, with the amount paid so far underneath -->
-      <ng-container matColumnDef="remaining">
-        <th mat-header-cell *matHeaderCellDef>Remaining</th>
-        <td mat-cell *matCellDef="let p">
-          @if (isCurrent(p)) {
-            {{ p.remainingBalance | currency }}
-            <div class="paid-so-far">{{ p.paidSoFar | currency }} of {{ p.policyTotal | currency }} paid</div>
-          } @else {
-            <!-- cancelled and expired policies have nothing left to pay -->
-            -
-          }
-        </td>
-      </ng-container>
-      <ng-container matColumnDef="dates">
-        <th mat-header-cell *matHeaderCellDef>Period</th>
-        <td mat-cell *matCellDef="let p">{{ p.startDate | date:'mediumDate' }} to {{ p.endDate | date:'mediumDate' }}</td>
-      </ng-container>
-      <!-- colored status badge (styles come from the global styles.scss) -->
-      <ng-container matColumnDef="status">
-        <th mat-header-cell *matHeaderCellDef>Status</th>
-        <td mat-cell *matCellDef="let p"><span [class]="statusClass(p.displayStatus)">{{ p.displayStatus }}</span></td>
-      </ng-container>
-      <!-- only current (Active or Pending) policies can have their coverage changed or be cancelled -->
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let p">
-          @if (isCurrent(p)) {
-            <button mat-button (click)="changeCoverage(p)">Change coverage</button>
-            <button mat-button (click)="cancel(p)">Cancel</button>
-          }
-        </td>
-      </ng-container>
+  <!-- one summary card per policy: name and status on top, the key facts in a grid, then the balance and the buttons -->
+  <div class="policy-list">
+    @for (p of visiblePolicies(); track p.policyID) {
+      <article class="policy-card" [class.past]="!isCurrent(p)">
+        <header class="policy-head">
+          <div>
+            <h3>{{ p.typeName }} <span class="policy-num">#{{ p.policyID }}</span></h3>
+            <!-- which tier of the product the policy is on (e.g. Full Coverage) -->
+            <div class="policy-level">{{ p.levelName }}</div>
+          </div>
+          <!-- colored status badge (styles come from the global styles) -->
+          <span [class]="statusClass(p.displayStatus)">{{ p.displayStatus }}</span>
+        </header>
 
-      <!-- the header row and one row per policy, using the column order from "columns" in policies.ts -->
-      <tr mat-header-row *matHeaderRowDef="columns"></tr>
-      <tr mat-row *matRowDef="let row; columns: columns"></tr>
-    </table>
+        <dl class="policy-facts">
+          <div><dt>Coverage</dt><dd>{{ p.coverageAmount | currency:'USD':'symbol':'1.0-0' }}</dd></div>
+          <div><dt>Monthly</dt><dd>{{ p.monthlyPremium | currency }}</dd></div>
+          <!-- Monthly or Yearly, as chosen when the policy was bought -->
+          <div><dt>Plan</dt><dd>{{ p.paymentPlan }}</dd></div>
+          <div><dt>Period</dt><dd>{{ p.startDate | date:'MMM d, y' }} – {{ p.endDate | date:'MMM d, y' }}</dd></div>
+        </dl>
+
+        <!-- what is still left to pay on this policy, with a bar for the amount paid so far
+             (cancelled and expired policies have nothing left to pay, so they skip this) -->
+        @if (isCurrent(p)) {
+          <div class="policy-balance">
+            <div class="balance-line">
+              <span>
+                Remaining <strong>{{ leftToPay(p) | currency }}</strong>
+                @if (lateFees(p) > 0) { <span class="cell-sub fee-note">(includes {{ lateFees(p) | currency }} in late fees)</span> }
+              </span>
+              <span class="cell-sub">{{ p.paidSoFar | currency }} of {{ p.policyTotal | currency }} paid</span>
+            </div>
+            <div class="progress"><span [style.width.%]="percentPaid(p)"></span></div>
+          </div>
+
+          <!-- only current (Active or Pending) policies can have their coverage changed or be cancelled -->
+          <!-- both are disabled while the customer has an overdue payment (see the banner at the top) -->
+          <footer class="policy-actions">
+            <button mat-stroked-button [disabled]="hasOverdue()" (click)="changeCoverage(p)">Change coverage</button>
+            <button mat-button class="cancel-link" [disabled]="hasOverdue()" (click)="cancel(p)">Cancel policy</button>
+          </footer>
+        }
+      </article>
+    }
   </div>
 }
 
 <h2>Get a new policy</h2>
 
-<mat-card>
+<mat-card class="quote-card">
   <mat-card-content>
     <form [formGroup]="form" (ngSubmit)="getQuote()">
       <mat-form-field appearance="outline" class="full">
@@ -156,18 +154,18 @@
         <p class="error">{{ error() }}</p>
       }
 
-      <button mat-stroked-button type="submit" [disabled]="loading()">Get quote</button>
+      <button mat-flat-button type="submit" class="quote-button" [disabled]="loading()">Get quote</button>
     </form>
 
     <!-- quote result: saved in the database for 30 days; disappears from here if the form is changed (it stays in the list below) -->
     @if (quote(); as q) {
       <div class="quote">
         <p><strong>{{ q.typeName }} · {{ q.levelName }}</strong>: {{ q.coverageAmount | currency }} coverage</p>
-        <p class="price">{{ q.monthlyPremium | currency }} <span>a month</span></p>
-        <p>{{ q.yearlyTotal | currency }} for the year, or {{ q.yearlyDiscountedTotal | currency }} if you pay yearly</p>
+        <p class="price">{{ q.monthlyPremium | currency }}<span>/month</span></p>
+        <p>{{ q.yearlyTotal | currency }}/year, or {{ q.yearlyDiscountedTotal | currency }}/year if you pay yearly</p>
         <p class="quote-note">Quote #{{ q.quoteID }} is saved. Valid until {{ q.expiryDate | date:'MM/dd/yyyy' }}.</p>
         <!-- the monthly/yearly choice happens in the buy pop-up -->
-        <button mat-flat-button (click)="openBuy(q)" [disabled]="loading()">Buy this policy</button>
+        <button mat-flat-button class="quote-button" (click)="openBuy(q)" [disabled]="loading()">Buy this policy</button>
       </div>
     }
   </mat-card-content>
@@ -177,14 +175,16 @@
 
 <!-- only active quotes show by default; this toggle (only shown if there are old ones) reveals expired and used quotes -->
 @if (oldQuoteCount() > 0) {
-  <mat-slide-toggle [checked]="showOldQuotes()" (change)="showOldQuotes.set($event.checked)">
-    Show expired and used quotes ({{ oldQuoteCount() }})
-  </mat-slide-toggle>
+  <div class="toggle-row">
+    <mat-slide-toggle [checked]="showOldQuotes()" (change)="showOldQuotes.set($event.checked)">
+      Show expired and used quotes ({{ oldQuoteCount() }})
+    </mat-slide-toggle>
+  </div>
 }
 
 <!-- friendly message instead of an empty table: either no quotes at all, or only old ones that are hidden -->
 @if (visibleQuotes().length === 0) {
-  <p>{{ quotes().length === 0 ? 'You have no saved quotes. Every quote you get is saved here for 30 days.' : 'You have no active quotes.' }}</p>
+  <p class="muted">{{ quotes().length === 0 ? 'You have no saved quotes. Every quote you get is saved here for 30 days.' : 'You have no active quotes.' }}</p>
 } @else {
   <div class="table-wrap">
     <table mat-table [dataSource]="visibleQuotes()">
@@ -195,7 +195,7 @@
       </ng-container>
       <ng-container matColumnDef="policy">
         <th mat-header-cell *matHeaderCellDef>Policy</th>
-        <td mat-cell *matCellDef="let q">{{ q.typeName }} · {{ q.levelName }}</td>
+        <td mat-cell *matCellDef="let q"><strong>{{ q.typeName }}</strong> · {{ q.levelName }}</td>
       </ng-container>
       <ng-container matColumnDef="coverageAmount">
         <th mat-header-cell *matHeaderCellDef>Coverage</th>

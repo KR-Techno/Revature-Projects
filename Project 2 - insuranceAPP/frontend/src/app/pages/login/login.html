@@ -1,10 +1,26 @@
-<div class="auth-page">
-  <div class="auth-wrap">
-    <h1 class="auth-brand">Welcome to DucklingInsurance!</h1>
-    <mat-card>
-      <mat-card-header>
-        <mat-card-title>Log in</mat-card-title>
-      </mat-card-header>
+<!-- Login page doubles as the welcome screen: the logo, name and slogan on the left, the login box on the right
+     (stacked on narrow screens) -->
+<div class="welcome-page">
+  <section class="welcome">
+    <app-brand-mark size="large" />
+    <p class="slogan">Coverage that keeps you afloat.</p>
+    <p class="intro">
+      Simple, friendly insurance for your car, home and more. Get a quote in minutes and manage everything in one place.
+    </p>
+
+    <!-- three short reasons to stay, each with a small icon in one of the brand colors -->
+    <ul class="perks">
+      <li><span class="perk-icon blue"><mat-icon>request_quote</mat-icon></span>Instant quotes, saved for 30 days</li>
+      <li><span class="perk-icon saffron"><mat-icon>event_available</mat-icon></span>Pay monthly or save by paying yearly</li>
+      <li><span class="perk-icon orange"><mat-icon>support_agent</mat-icon></span>File and track claims online</li>
+    </ul>
+  </section>
+
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>Welcome back</mat-card-title>
+      <mat-card-subtitle>Log in to your account</mat-card-subtitle>
+    </mat-card-header>
 
     <mat-card-content>
       <form [formGroup]="form" (ngSubmit)="submit()">
@@ -32,7 +48,7 @@
           <p class="auth-error">{{ error() }}</p>
         }
 
-        <button mat-flat-button type="submit" class="full" [disabled]="loading()">
+        <button mat-flat-button type="submit" class="full submit" [disabled]="loading()">
           {{ loading() ? 'Logging in...' : 'Log in' }}
         </button>
       </form>
@@ -40,5 +56,4 @@
       <p class="auth-footer">New here? <a routerLink="/register">Create an account</a></p>
     </mat-card-content>
   </mat-card>
-</div>
 </div>
