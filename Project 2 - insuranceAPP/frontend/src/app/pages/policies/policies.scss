@@ -1,0 +1,35 @@
+/* Styles for the Policies page only (Angular scopes them to this component).
+ Covers the policies table, the quote form, and the quote result box. */
+
+// lets the table scroll sideways on small screens instead of overflowing the page
+.table-wrap { overflow-x: auto; margin-bottom: 8px; }
+table { width: 100%; }
+.full { width: 100%; }
+.error { color: var(--mat-sys-error); margin: 0 0 12px; }
+
+// quote result: separated from the form by a divider line, with the monthly price shown large
+.quote { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--mat-sys-outline-variant); }
+.price { font-size: 1.75rem; font-weight: 500; margin: 4px 0; }
+.price span { font-size: 1rem; font-weight: 400; }
+// Coverage level list
+/* The coverage-level radio list */
+.level-title { margin: 8px 0 4px; font-weight: 500; }
+.levels { display: flex; flex-direction: column; margin-bottom: 12px; }
+.level { margin-bottom: 4px; }
+.level-desc { display: block; font-size: 0.85rem; opacity: 0.8; white-space: normal; max-width: 520px; }
+// small grey note under the amount when it was adjusted to fit the chosen level
+.note { font-size: 0.85rem; opacity: 0.8; margin: 0 0 12px; }
+
+/* balance card, plan picker, remaining column */
+.balance { margin-bottom: 16px; }
+.balance-label { font-size: 0.85rem; opacity: 0.8; }
+.balance-amount { font-size: 2rem; font-weight: 500; }
+.balance-note { opacity: 0.8; }
+.paid-so-far { font-size: 0.8rem; opacity: 0.7; }
+.plans { display: flex; flex-direction: column; margin: 8px 0 12px; }
+.plan { margin-bottom: 4px; }
+.plan-desc { display: block; font-size: 0.85rem; opacity: 0.8; white-space: normal; }
+
+/* saved quotes */
+.quote-note { font-size: 0.85rem; opacity: 0.75; }
+.actions { white-space: nowrap; }

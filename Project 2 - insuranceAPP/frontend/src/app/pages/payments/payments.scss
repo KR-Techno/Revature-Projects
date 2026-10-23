@@ -1,0 +1,6 @@
+/* Styles for the Payments page only (Angular scopes them to this component).
+ Status badges and the overdue alert come from the global styles.scss. */
+
+// lets the table scroll sideways on small screens instead of overflowing the page
+.table-wrap { overflow-x: auto; }
+table { width: 100%; }

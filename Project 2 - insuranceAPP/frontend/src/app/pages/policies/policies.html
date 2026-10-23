@@ -1,0 +1,233 @@
+<!-- Policies page: a table of the customer's policies on top, and the get-a-quote / buy form underneath -->
+<h1>Your policies</h1>
+
+<!-- balance card: what is still left to pay on the current policies -->
+@if (currentPolicies().length > 0) {
+  <mat-card class="balance">
+    <mat-card-content>
+      <div class="balance-label">Remaining balance</div>
+      <div class="balance-amount">{{ totalRemaining() | currency }}</div>
+      <div class="balance-note">
+        across {{ currentPolicies().length }} active {{ currentPolicies().length === 1 ? 'policy' : 'policies' }}
+        <!-- only shown while at least one payment is still unpaid -->
+        @if (nextDue(); as d) {
+          · next payment due {{ d | date:'MM/dd/yyyy' }}
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+}
+
+<!-- the table shows only current policies by default; this toggle (only shown if there are past ones) reveals the rest -->
+@if (pastCount() > 0) {
+  <mat-slide-toggle [checked]="showPast()" (change)="showPast.set($event.checked)">
+    Show cancelled and expired policies ({{ pastCount() }})
+  </mat-slide-toggle>
+}
+
+<!-- friendly message instead of an empty table: either no policies at all, or only past ones that are hidden -->
+@if (visiblePolicies().length === 0) {
+  <p>{{ policies().length === 0 ? "You don't have any policies yet. Get a quote below to start one." : "You have no active policies." }}</p>
+} @else {
+  <div class="table-wrap">
+    <table mat-table [dataSource]="visiblePolicies()">
+      <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
+      <ng-container matColumnDef="policyID">
+        <th mat-header-cell *matHeaderCellDef>Policy #</th>
+        <td mat-cell *matCellDef="let p">{{ p.policyID }}</td>
+      </ng-container>
+      <ng-container matColumnDef="typeName">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let p">{{ p.typeName }}</td>
+      </ng-container>
+      <!-- which tier of the product the policy is on (e.g. Full Coverage) -->
+      <ng-container matColumnDef="levelName">
+        <th mat-header-cell *matHeaderCellDef>Coverage level</th>
+        <td mat-cell *matCellDef="let p">{{ p.levelName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="coverageAmount">
+        <th mat-header-cell *matHeaderCellDef>Coverage</th>
+        <td mat-cell *matCellDef="let p">{{ p.coverageAmount | currency }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monthlyPremium">
+        <th mat-header-cell *matHeaderCellDef>Monthly</th>
+        <td mat-cell *matCellDef="let p">{{ p.monthlyPremium | currency }}</td>
+      </ng-container>
+      <!-- Monthly or Yearly, as chosen when the policy was bought -->
+      <ng-container matColumnDef="paymentPlan">
+        <th mat-header-cell *matHeaderCellDef>Plan</th>
+        <td mat-cell *matCellDef="let p">{{ p.paymentPlan }}</td>
+      </ng-container>
+      <!-- what is still left to pay on this policy, with the amount paid so far underneath -->
+      <ng-container matColumnDef="remaining">
+        <th mat-header-cell *matHeaderCellDef>Remaining</th>
+        <td mat-cell *matCellDef="let p">
+          @if (isCurrent(p)) {
+            {{ p.remainingBalance | currency }}
+            <div class="paid-so-far">{{ p.paidSoFar | currency }} of {{ p.policyTotal | currency }} paid</div>
+          } @else {
+            <!-- cancelled and expired policies have nothing left to pay -->
+            -
+          }
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="dates">
+        <th mat-header-cell *matHeaderCellDef>Period</th>
+        <td mat-cell *matCellDef="let p">{{ p.startDate | date:'mediumDate' }} to {{ p.endDate | date:'mediumDate' }}</td>
+      </ng-container>
+      <!-- colored status badge (styles come from the global styles.scss) -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let p"><span [class]="statusClass(p.displayStatus)">{{ p.displayStatus }}</span></td>
+      </ng-container>
+      <!-- only current (Active or Pending) policies can have their coverage changed or be cancelled -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let p">
+          @if (isCurrent(p)) {
+            <button mat-button (click)="changeCoverage(p)">Change coverage</button>
+            <button mat-button (click)="cancel(p)">Cancel</button>
+          }
+        </td>
+      </ng-container>
+
+      <!-- the header row and one row per policy, using the column order from "columns" in policies.ts -->
+      <tr mat-header-row *matHeaderRowDef="columns"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    </table>
+  </div>
+}
+
+<h2>Get a new policy</h2>
+
+<mat-card>
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="getQuote()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Policy type</mat-label>
+        <mat-select formControlName="policyTypeID">
+          @for (t of types(); track t.policyTypeID) {
+            <!-- types the customer already holds are greyed out; they can change that policy's coverage in the table instead -->
+            <mat-option [value]="t.policyTypeID" [disabled]="heldTypes().has(t.typeName)">{{ t.typeName }}</mat-option>
+          }
+        </mat-select>
+        <mat-error>Choose a policy type</mat-error>
+      </mat-form-field>
+
+      <!-- coverage levels of the chosen product, each with its plain-English description -->
+      @if (selectedType(); as t) {
+        <p class="level-title">Choose your coverage level</p>
+        <mat-radio-group formControlName="coverageLevelID" class="levels">
+          @for (l of t.levels; track l.coverageLevelID) {
+            <mat-radio-button [value]="l.coverageLevelID" class="level">
+              <strong>{{ l.levelName }}</strong>
+              <span class="level-desc">{{ l.description }}</span>
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+        <!-- radio groups have no built-in mat-error, so the message is shown by hand once the group is touched -->
+        @if (form.controls.coverageLevelID.touched && form.controls.coverageLevelID.invalid) {
+          <p class="error">Choose a coverage level</p>
+        }
+      }
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Coverage amount</mat-label>
+        <span matTextPrefix>$&nbsp;</span>
+        <input matInput type="number" formControlName="coverageAmount" />
+        <!-- hint shows the allowed coverage range for the chosen coverage level -->
+        @if (selectedLevel(); as l) {
+          <mat-hint>Between {{ l.minCoverage | currency:'USD':'symbol':'1.0-0' }} and {{ l.maxCoverage | currency:'USD':'symbol':'1.0-0' }}</mat-hint>
+        } @else {
+          <mat-hint>Choose a coverage level first</mat-hint>
+        }
+        @if (form.controls.coverageAmount.hasError('required')) {
+          <mat-error>Coverage amount is required</mat-error>
+        } @else if (form.controls.coverageAmount.hasError('min') || form.controls.coverageAmount.hasError('max')) {
+          <mat-error>Outside the allowed range for this coverage level</mat-error>
+        }
+      </mat-form-field>
+      <!-- explains an automatic change to the amount after picking a level with a different range -->
+      @if (adjusted()) {
+        <p class="note">{{ adjusted() }}</p>
+      }
+
+      @if (error()) {
+        <p class="error">{{ error() }}</p>
+      }
+
+      <button mat-stroked-button type="submit" [disabled]="loading()">Get quote</button>
+    </form>
+
+    <!-- quote result: saved in the database for 30 days; disappears from here if the form is changed (it stays in the list below) -->
+    @if (quote(); as q) {
+      <div class="quote">
+        <p><strong>{{ q.typeName }} · {{ q.levelName }}</strong>: {{ q.coverageAmount | currency }} coverage</p>
+        <p class="price">{{ q.monthlyPremium | currency }} <span>a month</span></p>
+        <p>{{ q.yearlyTotal | currency }} for the year, or {{ q.yearlyDiscountedTotal | currency }} if you pay yearly</p>
+        <p class="quote-note">Quote #{{ q.quoteID }} is saved. Valid until {{ q.expiryDate | date:'MM/dd/yyyy' }}.</p>
+        <!-- the monthly/yearly choice happens in the buy pop-up -->
+        <button mat-flat-button (click)="openBuy(q)" [disabled]="loading()">Buy this policy</button>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>
+
+<h2>Your saved quotes</h2>
+
+<!-- only active quotes show by default; this toggle (only shown if there are old ones) reveals expired and used quotes -->
+@if (oldQuoteCount() > 0) {
+  <mat-slide-toggle [checked]="showOldQuotes()" (change)="showOldQuotes.set($event.checked)">
+    Show expired and used quotes ({{ oldQuoteCount() }})
+  </mat-slide-toggle>
+}
+
+<!-- friendly message instead of an empty table: either no quotes at all, or only old ones that are hidden -->
+@if (visibleQuotes().length === 0) {
+  <p>{{ quotes().length === 0 ? 'You have no saved quotes. Every quote you get is saved here for 30 days.' : 'You have no active quotes.' }}</p>
+} @else {
+  <div class="table-wrap">
+    <table mat-table [dataSource]="visibleQuotes()">
+      <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
+      <ng-container matColumnDef="quoteID">
+        <th mat-header-cell *matHeaderCellDef>Quote #</th>
+        <td mat-cell *matCellDef="let q">{{ q.quoteID }}</td>
+      </ng-container>
+      <ng-container matColumnDef="policy">
+        <th mat-header-cell *matHeaderCellDef>Policy</th>
+        <td mat-cell *matCellDef="let q">{{ q.typeName }} · {{ q.levelName }}</td>
+      </ng-container>
+      <ng-container matColumnDef="coverageAmount">
+        <th mat-header-cell *matHeaderCellDef>Coverage</th>
+        <td mat-cell *matCellDef="let q">{{ q.coverageAmount | currency }}</td>
+      </ng-container>
+      <ng-container matColumnDef="monthlyPremium">
+        <th mat-header-cell *matHeaderCellDef>Monthly</th>
+        <td mat-cell *matCellDef="let q">{{ q.monthlyPremium | currency }}</td>
+      </ng-container>
+      <ng-container matColumnDef="expiry">
+        <th mat-header-cell *matHeaderCellDef>Valid until</th>
+        <td mat-cell *matCellDef="let q">{{ q.expiryDate | date:'MM/dd/yyyy' }}</td>
+      </ng-container>
+      <!-- colored status badge (styles come from the global styles.scss) -->
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let q"><span [class]="statusClass(q.displayStatus)">{{ q.displayStatus }}</span></td>
+      </ng-container>
+      <!-- Buy only works on an active quote for a product the customer doesn't already hold; used quotes are history -->
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let q" class="actions">
+          @if (q.displayStatus !== 'Accepted') {
+            <button mat-button [disabled]="!canBuy(q)" (click)="openBuy(q)">Buy</button>
+            <button mat-button (click)="removeQuote(q)">Remove</button>
+          }
+        </td>
+      </ng-container>
+
+      <!-- the header row and one row per quote, using the column order from "quoteColumns" in policies.ts -->
+      <tr mat-header-row *matHeaderRowDef="quoteColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: quoteColumns"></tr>
+    </table>
+  </div>
+}

@@ -1,0 +1,74 @@
+<!-- Payments page: an overdue warning (if any) and a table of the customer's payments with a Pay button -->
+<h1>Payments</h1>
+
+<!-- red banner summarizing overdue payments; only shown when there is at least one -->
+@if (overdue().length > 0) {
+  <div class="alert">
+    You have {{ overdue().length }} overdue {{ overdue().length === 1 ? 'payment' : 'payments' }}
+    totaling {{ overdueTotal() | currency }}, including late fees.
+  </div>
+}
+
+<!-- cancelled payments are hidden by default; this toggle (only shown if there are any) reveals them -->
+@if (cancelledCount() > 0) {
+  <mat-slide-toggle [checked]="showCancelled()" (change)="showCancelled.set($event.checked)">
+    Show cancelled payments ({{ cancelledCount() }})
+  </mat-slide-toggle>
+}
+
+<!-- friendly message instead of an empty table when there is nothing to show -->
+@if (visiblePayments().length === 0) {
+  <p>No payments to show. They appear here when you buy a policy.</p>
+} @else {
+  <div class="table-wrap">
+    <table mat-table [dataSource]="visiblePayments()">
+      <!-- each ng-container defines one column: its header (th) and what each row shows (td) -->
+      <ng-container matColumnDef="policy">
+        <th mat-header-cell *matHeaderCellDef>Policy</th>
+        <td mat-cell *matCellDef="let p">{{ p.typeName }} #{{ p.policyID }}</td>
+      </ng-container>
+      <ng-container matColumnDef="dueDate">
+        <th mat-header-cell *matHeaderCellDef>Due</th>
+        <td mat-cell *matCellDef="let p">{{ p.dueDate | date:'mediumDate' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="amount">
+        <th mat-header-cell *matHeaderCellDef>Amount</th>
+        <td mat-cell *matCellDef="let p">{{ p.amount | currency }}</td>
+      </ng-container>
+      <ng-container matColumnDef="lateFee">
+        <th mat-header-cell *matHeaderCellDef>Late fee</th>
+        <td mat-cell *matCellDef="let p">{{ p.lateFee | currency }}</td>
+      </ng-container>
+      <ng-container matColumnDef="total">
+        <th mat-header-cell *matHeaderCellDef>Total</th>
+        <td mat-cell *matCellDef="let p"><strong>{{ p.totalAmount | currency }}</strong></td>
+      </ng-container>
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let p">
+          <!-- colored status badge; overdue payments also show how many days late they are -->
+          <span [class]="statusClass(p.displayStatus)">
+            {{ p.displayStatus }}@if (p.daysOverdue > 0) { ({{ p.daysOverdue }} {{ p.daysOverdue === 1 ? 'day' : 'days' }}) }
+          </span>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="paidDate">
+        <th mat-header-cell *matHeaderCellDef>Paid on</th>
+        <td mat-cell *matCellDef="let p">{{ p.paidDate ? (p.paidDate | date:'mediumDate') : '' }}</td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let p">
+          <!-- only the oldest unpaid payment of each policy gets a Pay button -->
+          @if (canPay(p)) {
+            <button mat-flat-button [disabled]="loading()" (click)="pay(p)">Pay</button>
+          }
+        </td>
+      </ng-container>
+
+      <!-- the header row and one row per payment, using the column order from "columns" in payments.ts -->
+      <tr mat-header-row *matHeaderRowDef="columns"></tr>
+      <tr mat-row *matRowDef="let row; columns: columns"></tr>
+    </table>
+  </div>
+}

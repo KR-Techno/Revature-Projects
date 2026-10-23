@@ -1,0 +1,72 @@
+// Include theming for Angular Material with `mat.theme()`.
+// This Sass mixin will define CSS variables that are used for styling Angular Material
+// components according to the Material 3 design spec.
+// Learn more about theming and how to use it for your application's
+// custom components at https://material.angular.dev/guide/theming
+@use '@angular/material' as mat;
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  // Default the application to a light color theme. This can be changed to
+  // `dark` to enable the dark color theme, or to `light dark` to defer to the
+  // user's system settings.
+  color-scheme: light;
+
+  // Set a default background, font and text colors for the application using
+  // Angular Material's system-level CSS variables. Learn more about these
+  // variables at https://material.angular.dev/guide/system-variables
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+  font: var(--mat-sys-body-medium);
+
+  // Reset the user agent margin.
+  margin: 0;
+  height: 100%;
+}
+
+// space between every form field in the app
+mat-form-field { margin-bottom: 8px; }
+// global styling for auth
+.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.auth-wrap { width: 100%; max-width: 460px; }
+.auth-brand { text-align: center; margin: 0 0 16px; font-size: 1.75rem; }
+.auth-page mat-card { width: 100%; padding: 8px; }
+.auth-page mat-card-header { margin-bottom: 16px; }
+.auth-page .full { width: 100%; }
+.auth-error { color: var(--mat-sys-error); margin: 0 0 12px; }
+.auth-footer { margin-top: 16px; text-align: center; }
+// global styling for name
+.name-row, .dob-row { display: flex; gap: 12px; }
+.name-row mat-form-field { flex: 1; }
+// global styling for DOB
+.dob-label { margin: 0 0 4px 2px; font-size: 0.875rem; opacity: 0.75; }
+.dob-month { flex: 2; }
+.dob-day { flex: 1; }
+.dob-year { flex: 1.3; }
+// global styling for status: rounded badges in the payment/claim tables, colored by the class statusClass() adds
+// (red for overdue/denied, primary color for paid/approved, grey for everything else)
+.status { padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; white-space: nowrap;
+          background: var(--mat-sys-surface-container-high); }
+.status.overdue, .status.denied { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); }
+.status.paid, .status.approved { background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container); }
+// red warning banner, e.g. the overdue payments alert
+.alert { background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container);
+         padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+// red filled button for destructive actions (e.g. deactivating the account); global so dialogs can use it too
+.danger-button {
+  --mat-button-filled-container-color: var(--mat-sys-error);
+  --mat-button-filled-label-text-color: var(--mat-sys-on-error);
+}

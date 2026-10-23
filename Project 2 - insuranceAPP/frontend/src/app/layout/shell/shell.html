@@ -1,0 +1,64 @@
+<!-- Shell layout shared by every logged-in page: the toolbar stays at the top, the current page loads below it -->
+<mat-toolbar class="app-toolbar">
+  <!-- for an admin, /dashboard is redirected to /admin/customers by customerGuard, so the logo works for both -->
+  <a class="brand" routerLink="/dashboard">DucklingInsurance</a>
+  <!-- navigation links; routerLinkActive adds the "active" class to the link for the page you're on -->
+  <!-- an admin sees the admin links; a customer sees the customer links -->
+  <nav>
+    @if (auth.isAdmin()) {
+      <a mat-button routerLink="/admin/customers" routerLinkActive="active">Customers</a>
+      <a mat-button routerLink="/admin/claims" routerLinkActive="active">Claims</a>
+      <a mat-button routerLink="/admin/payments" routerLinkActive="active">Payments</a>
+      <a mat-button routerLink="/admin/quotes" routerLinkActive="active">Quotes</a>
+      <a mat-button routerLink="/admin/products" routerLinkActive="active">Policy products</a>
+    } @else {
+      <a mat-button routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a mat-button routerLink="/policies" routerLinkActive="active">Policies</a>
+      <a mat-button routerLink="/payments" routerLinkActive="active">Payments</a>
+      <a mat-button routerLink="/claims" routerLinkActive="active">Claims</a>
+    }
+  </nav>
+  <!-- empty spacer pushes the avatar to the right edge -->
+  <span class="spacer"></span>
+
+  <!-- avatar with the customer's initials (a generic icon while the name loads); clicking opens the account menu -->
+  <button mat-icon-button class="avatar-button" [matMenuTriggerFor]="userMenu" aria-label="Account menu">
+    @if (initials()) {
+      <span class="avatar" [style.background]="avatarColor()">{{ initials() }}</span>
+    } @else {
+      <mat-icon>account_circle</mat-icon>
+    }
+  </button>
+
+  <!-- account menu, opening to the left of the avatar so it stays on screen -->
+  <mat-menu #userMenu="matMenu" xPosition="before">
+    @if (user.me(); as me) {
+      <!-- name and email header; stopPropagation keeps the menu open if it's clicked -->
+      <div class="menu-header" (click)="$event.stopPropagation()">
+        <div class="menu-name">{{ me.firstName }} {{ me.lastName }}</div>
+        <div class="menu-email">{{ me.customerEmail }}</div>
+        <!-- small label so an admin can tell at a glance which kind of account they're in -->
+        @if (auth.isAdmin()) {
+          <div class="menu-email">Administrator</div>
+        }
+      </div>
+      <mat-divider></mat-divider>
+    }
+    <!-- the profile page is a customer page (customerGuard would redirect an admin), so admins don't get the link -->
+    @if (!auth.isAdmin()) {
+      <a mat-menu-item routerLink="/profile">
+        <mat-icon>person</mat-icon>
+        <span>View profile</span>
+      </a>
+    }
+    <button mat-menu-item (click)="auth.logout()">
+      <mat-icon>logout</mat-icon>
+      <span>Log out</span>
+    </button>
+  </mat-menu>
+</mat-toolbar>
+
+<!-- the router swaps the current page (Dashboard, Policies, etc.) in here -->
+<main class="content">
+  <router-outlet />
+</main>
