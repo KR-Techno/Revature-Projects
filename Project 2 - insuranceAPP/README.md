@@ -2,7 +2,7 @@
 
 A full-stack insurance platform where customers get quotes, buy policies, pay, and file claims, and an admin runs the back office. It is a three-tier app (Angular, ASP.NET Core Web API, Azure SQL), built database-first and deployed on Azure.
 
-**Live demo:** https://purple-ground-0651bcf1e.6.azurestaticapps.net
+**Live demo:** [Insurance App](https://purple-ground-0651bcf1e.6.azurestaticapps.net)
 
 > The API runs on Azure's free App Service tier, so the first request after a quiet period can take 30 seconds or more while it wakes up. Give it a moment and refresh.
 
